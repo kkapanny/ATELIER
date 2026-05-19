@@ -1,0 +1,244 @@
+// =====================================================================
+// ATELIER — схема базы данных PostgreSQL (Prisma ORM)
+// Соответствует ER-диаграмме из отчёта (раздел 2.2.3).
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  guest
+  client
+  master
+  admin
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum ClientCategory {
+  regular
+  casual
+}
+
+enum HallName {
+  male
+  female
+}
+
+enum AppointmentStatus {
+  planned
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+enum NotificationType {
+  reminder_24h
+  reminder_3h
+  repeat_visit
+}
+
+enum NotificationStatus {
+  queued
+  sent
+  failed
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  login         String    @unique
+  email         String?   @unique
+  phone         String?
+  passwordHash  String
+  role          Role      @default(client)
+  isBlocked     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  client            Client?
+  master            Master?
+  refreshTokens     RefreshToken[]
+  pushSubscriptions PushSubscription[]
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Client {
+  id              Int             @id @default(autoincrement())
+  userId          Int             @unique
+  fullName        String
+  gender          Gender
+  category        ClientCategory  @default(casual)
+  discountPercent Int             @default(0)
+  phone           String?
+  birthDate       DateTime?
+  notes           String?
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  reviews         Review[]
+}
+
+model Hall {
+  id          Int        @id @default(autoincrement())
+  name        HallName   @unique
+  description String?
+  masters     Master[]
+  services    Service[]
+}
+
+model Master {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  fullName        String
+  gender          Gender
+  hallId          Int
+  rank            Int       @default(3)
+  experienceYears Int       @default(1)
+  bio             String?
+  avatarUrl       String?
+  socialLinks     Json?
+  averageRating   Float     @default(0)
+  isActive        Boolean   @default(true)
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hall                Hall                 @relation(fields: [hallId], references: [id])
+  services            MasterService[]
+  appointments        Appointment[]
+  reviews             Review[]
+  careRecommendations CareRecommendation[]
+
+  @@index([hallId])
+}
+
+model Service {
+  id           Int       @id @default(autoincrement())
+  name         String
+  hallId       Int
+  price        Decimal   @db.Decimal(10, 2)
+  durationMin  Int
+  description  String?
+  isActive     Boolean   @default(true)
+  hall         Hall      @relation(fields: [hallId], references: [id])
+  masters      MasterService[]
+  appointments Appointment[]
+
+  @@index([hallId])
+}
+
+model MasterService {
+  masterId    Int
+  serviceId   Int
+  customPrice Decimal? @db.Decimal(10, 2)
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([masterId, serviceId])
+}
+
+model Appointment {
+  id               Int                @id @default(autoincrement())
+  clientId         Int
+  masterId         Int
+  serviceId        Int
+  startsAt         DateTime
+  endsAt           DateTime
+  status           AppointmentStatus  @default(planned)
+  priceAtBooking   Decimal            @db.Decimal(10, 2)
+  discountApplied  Decimal            @db.Decimal(10, 2) @default(0)
+  notes            String?
+  createdAt        DateTime           @default(now())
+
+  client           Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  master           Master              @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  service          Service             @relation(fields: [serviceId], references: [id])
+  care             CareRecommendation?
+  notifications    Notification[]
+  review           Review?
+
+  @@index([masterId, startsAt])
+  @@index([clientId, startsAt])
+}
+
+model CareRecommendation {
+  id              Int         @id @default(autoincrement())
+  appointmentId   Int         @unique
+  adviceText      String
+  repeatAfterDays Int
+  createdById     Int
+  createdAt       DateTime    @default(now())
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  createdBy       Master      @relation(fields: [createdById], references: [id])
+}
+
+model PushSubscription {
+  id           Int            @id @default(autoincrement())
+  userId       Int
+  endpoint     String         @unique
+  p256dhKey    String
+  authKey      String
+  userAgent    String?
+  createdAt    DateTime       @default(now())
+  lastUsedAt   DateTime       @default(now())
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([userId])
+}
+
+model Notification {
+  id              Int                 @id @default(autoincrement())
+  appointmentId   Int
+  subscriptionId  Int?
+  type            NotificationType
+  plannedAt       DateTime
+  sentAt          DateTime?
+  status          NotificationStatus  @default(queued)
+  errorMessage    String?
+  appointment     Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  subscription    PushSubscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([plannedAt, status])
+}
+
+model Review {
+  id            Int         @id @default(autoincrement())
+  appointmentId Int         @unique
+  clientId      Int
+  masterId      Int
+  rating        Int
+  text          String?
+  createdAt     DateTime    @default(now())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  client        Client      @relation(fields: [clientId], references: [id])
+  master        Master      @relation(fields: [masterId], references: [id])
+}
+
+model PromoCode {
+  id              Int       @id @default(autoincrement())
+  code            String    @unique
+  discountPercent Int
+  usageLimit      Int       @default(0)
+  usedCount       Int       @default(0)
+  validFrom       DateTime?
+  validTo         DateTime?
+  isActive        Boolean   @default(true)
+}

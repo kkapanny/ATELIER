@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: atelier-postgres
+    environment:
+      POSTGRES_USER: atelier
+      POSTGRES_PASSWORD: atelier
+      POSTGRES_DB: atelier
+    # порт наружу не выставляем — приложение ходит к postgres по docker-сети
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atelier"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: atelier-redis
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: atelier-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # оба Origin — если открыть сайт как 127.0.0.1:5173, иначе CORS режет запросы к API
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
+      # по HTTP Secure-cookie не работает; без этого refresh-токен не сохраняется
+      COOKIE_SECURE: "false"
+      DATABASE_URL: postgresql://atelier:atelier@postgres:5432/atelier?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-access-secret-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-change-me}
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 30d
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: mailto:admin@atelier.local
+    ports:
+      - "4000:4000"
+    command: sh -c "npx prisma migrate deploy && node prisma/seed.js && node src/index.js"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:4000/api/v1
+        VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+    container_name: atelier-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

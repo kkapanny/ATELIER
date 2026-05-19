@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-cream-100 text-ink-700 font-sans antialiased;
+    font-feature-settings: "ss01", "cv01";
+  }
+  h1, h2, h3 {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  /* Чтобы тонкие иконки/символы выглядели как в BEAUTY ROOM */
+  ::selection {
+    @apply bg-ink-700 text-cream-50;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium tracking-wide transition;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cream-100 focus:ring-ink-700/30;
+  }
+  .btn-primary {
+    @apply btn bg-ink-700 text-cream-50 hover:bg-ink-800 rounded-md;
+  }
+  .btn-secondary {
+    @apply btn bg-cream-50 text-ink-700 border border-ink-700/15 hover:border-ink-700/40 rounded-md;
+  }
+  .btn-ghost {
+    @apply btn text-ink-500 hover:text-ink-700 rounded-md;
+  }
+  .btn-danger {
+    @apply btn bg-red-50 text-red-600 hover:bg-red-100 rounded-md;
+  }
+  .btn-pill {
+    @apply btn px-6 py-3 rounded-full bg-ink-700 text-cream-50 hover:bg-ink-800;
+  }
+
+  .field-input {
+    @apply w-full bg-transparent border-b border-ink-200 px-0 py-3 text-ink-700 placeholder:text-ink-300;
+    @apply focus:outline-none focus:border-ink-700 transition-colors;
+  }
+  .field-label {
+    @apply block text-[11px] uppercase tracking-widest text-ink-300 mb-1;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-cream-200/60;
+  }
+  .pill {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs tracking-wide;
+  }
+  .pill-cream {
+    @apply pill bg-cream-200 text-ink-500;
+  }
+  .pill-ink {
+    @apply pill bg-ink-700 text-cream-50;
+  }
+  .pill-soft {
+    @apply pill bg-cream-50 text-ink-500 border border-cream-200;
+  }
+
+  .nav-link {
+    @apply text-sm tracking-wide text-ink-400 hover:text-ink-700 transition-colors;
+  }
+  .nav-link-active {
+    @apply text-ink-700;
+  }
+  .nav-pill {
+    @apply px-4 py-2 rounded-full text-sm tracking-wide text-ink-400 transition-colors;
+  }
+  .nav-pill-active {
+    @apply bg-ink-700 text-cream-50;
+  }
+
+  .page-shell {
+    @apply max-w-7xl mx-auto px-6 lg:px-10 py-10;
+  }
+}
