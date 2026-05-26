@@ -33,8 +33,7 @@ export function ClientNotifications() {
     <div className="page-shell max-w-3xl">
       <h1 className="font-display text-4xl text-ink-700">Push-уведомления</h1>
       <p className="text-ink-400 text-sm mt-2">
-        Атомарные напоминания за 24 часа, за 3 часа и о повторной записи доставляются по
-        стандарту Web Push API через Service Worker. Не нужно ставить мессенджеры.
+        Уведомления за 24 и 3 часа до визита и о повторной записи.
       </p>
 
       <div className="bg-white border border-cream-200 rounded-2xl p-6 mt-8 flex items-center gap-5">

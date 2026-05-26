@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { MasterAvatar } from "@/components/MasterAvatar";
+import { MasterSpecialtyLine } from "@/components/MasterSpecialtyLine";
+import { formatHallLabel } from "@/lib/hall";
 
 const MANICURE_IMAGE = "/images/manicure-hero.png";
 const COLORING_IMAGE = "/images/coloring-hero.png";
@@ -19,6 +21,7 @@ interface Master {
   bio?: string;
   avatarUrl?: string | null;
   averageRating: number;
+  services?: { name: string }[];
 }
 
 export function GuestHome() {
@@ -137,13 +140,13 @@ export function GuestHome() {
                   avatarUrl={m.avatarUrl}
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition"
                 />
-                <span className="absolute top-3 left-3 pill-soft">{m.hall.name === "male" ? "Мужской зал" : "Женский зал"}</span>
+                <span className="absolute top-3 left-3 pill-soft">
+                  {formatHallLabel(m.hall)}
+                </span>
               </div>
               <div className="p-5 flex flex-col gap-1 flex-1">
                 <div className="font-display text-xl text-ink-700">{m.fullName}</div>
-                <div className="text-xs tracking-widest uppercase text-ink-300">
-                  {hallLabel(m.hall.name)} · {m.experienceYears} лет
-                </div>
+                <MasterSpecialtyLine services={m.services} experienceYears={m.experienceYears} />
                 <div className="mt-2 text-sm text-ink-500">★ {m.averageRating.toFixed(1)}</div>
               </div>
             </Link>
@@ -213,6 +216,3 @@ function PromoMini({ title, img }: { title: string; img: string }) {
   );
 }
 
-function hallLabel(name: string) {
-  return name === "male" ? "Мужской зал" : "Женский зал";
-}

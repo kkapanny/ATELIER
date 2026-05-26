@@ -1,13 +1,34 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { getMasterAvatarUrl } from "@/lib/masterAvatar";
+import { formatMasterSpecialties } from "@/lib/masterSpecialties";
+import { TEAM_ADMIN, TEAM_MASTER_NAMES } from "@/lib/team";
+
+interface Master {
+  id: number;
+  fullName: string;
+  avatarUrl?: string | null;
+  services?: { name: string }[];
+}
 
 export function GuestAbout() {
+  const { data: masters = [] } = useQuery({
+    queryKey: ["masters", "about-team"],
+    queryFn: async () => (await api.get<Master[]>("/masters")).data,
+  });
+
+  const teamMasters = TEAM_MASTER_NAMES.map((name) => masters.find((m) => m.fullName === name)).filter(
+    (m): m is Master => Boolean(m),
+  );
+
   return (
     <div className="page-shell">
       <div className="grid md:grid-cols-2 gap-10">
         <div className="rounded-2xl overflow-hidden bg-cream-200 aspect-[4/5]">
           <img
-            src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900"
-            alt="ATELIER"
+            src="/images/hero-atelier.png"
+            alt="Интерьер салона ATELIER"
             className="w-full h-full object-cover"
           />
         </div>
@@ -29,25 +50,71 @@ export function GuestAbout() {
       {/* Команда */}
       <div id="team" className="mt-20 scroll-mt-24">
         <h2 className="font-display text-3xl text-ink-700 mb-8">Команда</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          {[
-            { name: "Анна Морозова", role: "Мастер окрашивания", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600" },
-            { name: "София Гриневич", role: "Администратор", img: "https://images.unsplash.com/photo-1504703395950-b89145a5425b?w=600" },
-            { name: "Валерия Филиппчук", role: "Мастер маникюра", img: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=600" },
-            { name: "София Крашевская", role: "Мастер ногтевого сервиса", img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600" },
-          ].map((p) => (
-            <div key={p.name} className="rounded-2xl overflow-hidden bg-white border border-cream-200">
-              <div className="aspect-[3/4] bg-cream-200">
-                <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="p-4">
-                <div className="font-display text-lg text-ink-700">{p.name}</div>
-                <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">{p.role}</div>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          <TeamCard
+            name={TEAM_ADMIN.name}
+            role={TEAM_ADMIN.role}
+            image={TEAM_ADMIN.image}
+          />
+
+          {teamMasters.map((m) => (
+            <TeamCard
+              key={m.id}
+              name={m.fullName}
+              role={formatMasterSpecialties(m.services) || "Мастер"}
+              image={getMasterAvatarUrl({ fullName: m.fullName, avatarUrl: m.avatarUrl })}
+              to={`/masters/${m.id}`}
+            />
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TeamCard({
+  name,
+  role,
+  image,
+  to,
+}: {
+  name: string;
+  role: string;
+  image?: string;
+  to?: string;
+}) {
+  const content = (
+    <>
+      <div className="aspect-[3/4] bg-cream-200 overflow-hidden">
+        {image ? (
+          <img src={image} alt={name} className="w-full h-full object-cover object-top" />
+        ) : (
+          <div className="w-full h-full grid place-items-center font-display text-4xl text-ink-300">
+            {name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
+          </div>
+        )}
+      </div>
+      <div className="p-4">
+        <div className="font-display text-lg text-ink-700">{name}</div>
+        <div className="text-xs uppercase tracking-widest text-ink-300 mt-1 leading-snug">{role}</div>
+      </div>
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="rounded-2xl overflow-hidden bg-white border border-cream-200 hover:shadow-card transition block"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl overflow-hidden bg-white border border-cream-200">
+      {content}
     </div>
   );
 }

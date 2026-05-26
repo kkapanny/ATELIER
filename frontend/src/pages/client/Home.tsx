@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { classNames } from "@/lib/utils";
 import { MasterAvatar } from "@/components/MasterAvatar";
+import { MasterSpecialtyLine } from "@/components/MasterSpecialtyLine";
+import { formatHallLabel } from "@/lib/hall";
 
 interface Master {
   id: number;
@@ -12,6 +14,7 @@ interface Master {
   experienceYears: number;
   averageRating: number;
   avatarUrl?: string | null;
+  services?: { name: string }[];
 }
 
 export function ClientHome() {
@@ -56,15 +59,17 @@ export function ClientHome() {
                     className="w-full h-full object-cover object-top group-hover:scale-105 transition"
                   />
                   <span className="absolute top-3 left-3 pill-soft">
-                    {m.hall.name === "male" ? "Мужской зал" : "Женский зал"}
+                    {formatHallLabel(m.hall)}
                   </span>
                   <span className="absolute top-3 right-3 pill bg-white/90 text-ink-500">★ {m.averageRating.toFixed(1)}</span>
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
                   <div className="font-display text-xl text-ink-700">{m.fullName}</div>
-                  <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">
-                    {m.experienceYears} лет опыта
-                  </div>
+                  <MasterSpecialtyLine
+                    services={m.services}
+                    experienceYears={m.experienceYears}
+                    className="text-xs uppercase tracking-widest text-ink-300 mt-1"
+                  />
                   <div className="mt-auto pt-5">
                     <span className="btn-secondary w-full justify-center">Записаться</span>
                   </div>

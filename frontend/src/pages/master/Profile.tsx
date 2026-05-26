@@ -4,6 +4,8 @@ import { useAuthStore } from "@/lib/auth";
 import { Tabs } from "@/components/ui/Tabs";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { MasterAvatar } from "@/components/MasterAvatar";
+import { formatMasterSpecialtyWithYears } from "@/lib/masterSpecialties";
+import { ServiceListGrouped } from "@/components/ServiceListGrouped";
 
 export function MasterProfile() {
   const { user } = useAuthStore();
@@ -40,7 +42,7 @@ export function MasterProfile() {
           </div>
           <h2 className="font-display text-2xl text-ink-700">{user?.fullName}</h2>
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-2">
-            {me.master.hall?.name === "male" ? "Мужской зал" : "Женский зал"} · {me.master.experienceYears} лет
+            {formatMasterSpecialtyWithYears(master?.services, me.master.experienceYears)}
           </div>
           <div className="grid grid-cols-3 gap-2 mt-6">
             <Stat label={`★ ${master?.averageRating.toFixed(1) ?? "0.0"}`} desc="оценка" />
@@ -71,19 +73,7 @@ export function MasterProfile() {
               {
                 id: "services",
                 label: "Услуги",
-                content: (
-                  <ul className="space-y-3">
-                    {(master?.services ?? []).map((s: any) => (
-                      <li key={s.id} className="flex items-center justify-between border-b border-dashed border-cream-300 pb-3">
-                        <div>
-                          <div className="font-display text-lg text-ink-700">{s.name}</div>
-                          <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">{s.durationMin} мин</div>
-                        </div>
-                        <div className="text-ink-700 font-medium">{formatPrice(s.price)}</div>
-                      </li>
-                    ))}
-                  </ul>
-                ),
+                content: <ServiceListGrouped services={master?.services ?? []} />,
               },
               {
                 id: "reviews",

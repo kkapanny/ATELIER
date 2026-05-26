@@ -1,6 +1,6 @@
 /**
  * ATELIER — заполнение базы тестовыми данными.
- * Создаёт: 3 пользователей (user/master/admin), 2 зала, 8 услуг, 6 мастеров,
+ * Создаёт: 3 пользователей (user/master/admin), 2 зала, 12 услуг, 6 мастеров,
  * несколько демо-записей с историей и советами по уходу.
  */
 import { PrismaClient } from "@prisma/client";
@@ -35,16 +35,23 @@ async function main() {
   });
 
   // Услуги
+  // Порядок создания = порядок в каталоге: стрижка → уход → окрашивание → маникюр → макияж
   const services = await Promise.all([
     prisma.service.create({ data: { name: "Стрижка мужская", hallId: maleHall.id, price: 800, durationMin: 45 } }),
     prisma.service.create({ data: { name: "Модная стрижка", hallId: maleHall.id, price: 1500, durationMin: 60 } }),
     prisma.service.create({ data: { name: "Моделирование бороды", hallId: maleHall.id, price: 700, durationMin: 30 } }),
     prisma.service.create({ data: { name: "Стрижка женская", hallId: femaleHall.id, price: 1800, durationMin: 60 } }),
+    prisma.service.create({ data: { name: "Уход Olaplex", hallId: femaleHall.id, price: 1600, durationMin: 45 } }),
     prisma.service.create({ data: { name: "Окрашивание в один тон", hallId: femaleHall.id, price: 3500, durationMin: 120 } }),
     prisma.service.create({ data: { name: "Сложное окрашивание (балаяж)", hallId: femaleHall.id, price: 6800, durationMin: 180 } }),
     prisma.service.create({ data: { name: "Маникюр с покрытием", hallId: femaleHall.id, price: 1800, durationMin: 90 } }),
-    prisma.service.create({ data: { name: "Уход Olaplex", hallId: femaleHall.id, price: 1600, durationMin: 45 } }),
+    prisma.service.create({ data: { name: "Маникюр без покрытия", hallId: femaleHall.id, price: 1200, durationMin: 60 } }),
+    prisma.service.create({ data: { name: "Макияж повседневный", hallId: femaleHall.id, price: 2500, durationMin: 60 } }),
+    prisma.service.create({ data: { name: "Макияж праздничный", hallId: femaleHall.id, price: 4000, durationMin: 90 } }),
+    prisma.service.create({ data: { name: "Макияж свадебный", hallId: femaleHall.id, price: 6000, durationMin: 120 } }),
   ]);
+
+  const serviceByName = Object.fromEntries(services.map((s) => [s.name, s]));
 
   const password = (s) => bcrypt.hash(s, 10);
 
@@ -83,7 +90,7 @@ async function main() {
           hallId: femaleHall.id,
           rank: 5,
           experienceYears: 8,
-          bio: "Колорист с опытом более 8 лет. Специализация — балаяж, airtouch, восстановление.",
+          bio: "Парикмахер-колорист: женские стрижки, окрашивание и балаяж, уход Olaplex.",
           avatarUrl: "/images/masters/olga-kuznetsova.png",
           socialLinks: { instagram: "@olga.color", telegram: "@olga_kuznetsova" },
           averageRating: 4.9,
@@ -113,7 +120,7 @@ async function main() {
       hallId: femaleHall.id,
       rank: 4,
       experienceYears: 6,
-      bio: "Мастер маникюра и дизайна ногтей.",
+      bio: "Мастер маникюра: с покрытием и без, классический и аппаратный уход.",
       avatarUrl: "/images/masters/olga-sokolova.png",
       averageRating: 4.8,
     },
@@ -124,7 +131,7 @@ async function main() {
       hallId: maleHall.id,
       rank: 5,
       experienceYears: 5,
-      bio: "Барбер, точная работа машинкой и ножницами.",
+      bio: "Барбер: мужская и модная стрижка, работа машинкой и ножницами.",
       avatarUrl: "/images/masters/ivan-sidorov.png",
       averageRating: 4.7,
     },
@@ -135,7 +142,7 @@ async function main() {
       hallId: femaleHall.id,
       rank: 5,
       experienceYears: 9,
-      bio: "Стрижки и укладки, индивидуальный подбор формы.",
+      bio: "Парикмахер: женские стрижки и восстанавливающий уход Olaplex.",
       avatarUrl: "/images/masters/maria-novikova.png",
       averageRating: 4.9,
     },
@@ -146,7 +153,7 @@ async function main() {
       hallId: femaleHall.id,
       rank: 4,
       experienceYears: 7,
-      bio: "Косметолог-эстетист, чистки и уход за лицом.",
+      bio: "Визажист: макияж повседневный, праздничный и свадебный.",
       avatarUrl: "/images/masters/elena-orlova.png",
       averageRating: 4.8,
     },
@@ -157,7 +164,7 @@ async function main() {
       hallId: maleHall.id,
       rank: 4,
       experienceYears: 4,
-      bio: "Барбер, моделирование бороды и стрижка машинкой.",
+      bio: "Барбер: мужская стрижка и моделирование бороды.",
       avatarUrl: "/images/masters/dmitriy-volkov.png",
       averageRating: 4.6,
     },
@@ -179,25 +186,38 @@ async function main() {
   }
 
   // Связь мастеров с услугами (master_services)
-  const allMasters = [userMaster.master, ...createdMasters];
-  const link = (master, serviceIdx) =>
+  const link = (master, serviceName) =>
     prisma.masterService.create({
-      data: { masterId: master.id, serviceId: services[serviceIdx].id },
+      data: { masterId: master.id, serviceId: serviceByName[serviceName].id },
     });
 
-  await link(userMaster.master, 3); // стрижка ж
-  await link(userMaster.master, 4); // окрашивание
-  await link(userMaster.master, 5); // балаяж
-  await link(userMaster.master, 7); // Olaplex
+  const olgaKuznetsova = userMaster.master;
+  const olgaSokolova = createdMasters[0];
+  const ivanSidorov = createdMasters[1];
+  const mariaNovikova = createdMasters[2];
+  const elenaOrlova = createdMasters[3];
+  const dmitriyVolkov = createdMasters[4];
 
-  await link(createdMasters[0], 6); // маникюр
-  await link(createdMasters[1], 0); // стрижка м
-  await link(createdMasters[1], 1); // модная
-  await link(createdMasters[2], 3); // стрижка ж
-  await link(createdMasters[2], 7); // Olaplex
-  await link(createdMasters[3], 4); // окрашивание
-  await link(createdMasters[4], 0); // стрижка м
-  await link(createdMasters[4], 2); // борода
+  await link(olgaKuznetsova, "Стрижка женская");
+  await link(olgaKuznetsova, "Окрашивание в один тон");
+  await link(olgaKuznetsova, "Сложное окрашивание (балаяж)");
+  await link(olgaKuznetsova, "Уход Olaplex");
+
+  await link(olgaSokolova, "Маникюр с покрытием");
+  await link(olgaSokolova, "Маникюр без покрытия");
+
+  await link(ivanSidorov, "Стрижка мужская");
+  await link(ivanSidorov, "Модная стрижка");
+
+  await link(mariaNovikova, "Стрижка женская");
+  await link(mariaNovikova, "Уход Olaplex");
+
+  await link(elenaOrlova, "Макияж повседневный");
+  await link(elenaOrlova, "Макияж праздничный");
+  await link(elenaOrlova, "Макияж свадебный");
+
+  await link(dmitriyVolkov, "Стрижка мужская");
+  await link(dmitriyVolkov, "Моделирование бороды");
 
   // Пара случайных клиентов для админ-панели
   for (let i = 0; i < 5; i++) {
@@ -228,7 +248,7 @@ async function main() {
     data: {
       clientId: userClient.client.id,
       masterId: userMaster.master.id,
-      serviceId: services[5].id, // балаяж
+      serviceId: serviceByName["Сложное окрашивание (балаяж)"].id,
       startsAt: past,
       endsAt: new Date(past.getTime() + 180 * 60 * 1000),
       status: "completed",
@@ -253,7 +273,7 @@ async function main() {
     data: {
       clientId: userClient.client.id,
       masterId: userMaster.master.id,
-      serviceId: services[5].id,
+      serviceId: serviceByName["Сложное окрашивание (балаяж)"].id,
       startsAt: future,
       endsAt: new Date(future.getTime() + 180 * 60 * 1000),
       status: "confirmed",

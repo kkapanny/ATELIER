@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../lib/prisma.js";
 import { HttpError } from "../../middleware/error.js";
+import { sortServicesByCatalog } from "../../lib/service-catalog.js";
 
 const router = Router();
 
@@ -111,12 +112,14 @@ function serialize(master, includeReviews = false) {
     avatarUrl: master.avatarUrl,
     socialLinks: master.socialLinks,
     averageRating: master.averageRating,
-    services: master.services.map((s) => ({
-      id: s.service.id,
-      name: s.service.name,
-      durationMin: s.service.durationMin,
-      price: Number(s.customPrice ?? s.service.price),
-    })),
+    services: sortServicesByCatalog(
+      master.services.map((s) => ({
+        id: s.service.id,
+        name: s.service.name,
+        durationMin: s.service.durationMin,
+        price: Number(s.customPrice ?? s.service.price),
+      })),
+    ),
     ...(includeReviews
       ? {
           reviews: master.reviews?.map((r) => ({

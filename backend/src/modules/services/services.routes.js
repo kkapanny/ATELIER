@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../lib/prisma.js";
+import { sortServicesByCatalog } from "../../lib/service-catalog.js";
 
 const router = Router();
 
@@ -9,9 +10,8 @@ router.get("/", async (req, res, next) => {
     const services = await prisma.service.findMany({
       where: { isActive: true, hallId },
       include: { hall: true },
-      orderBy: { id: "asc" },
     });
-    res.json(services);
+    res.json(sortServicesByCatalog(services));
   } catch (e) { next(e); }
 });
 

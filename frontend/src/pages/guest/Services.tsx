@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { ServiceListGrouped } from "@/components/ServiceListGrouped";
 import { api } from "@/lib/api";
-import { formatPrice } from "@/lib/utils";
 
 interface Service {
   id: number;
@@ -23,10 +23,9 @@ export function GuestServices() {
 
   return (
     <div className="page-shell">
-      <h1 className="font-display text-5xl text-ink-700 mb-2">Услуги</h1>
-      <p className="text-ink-400">Прайс актуален. Запись доступна авторизованным клиентам.</p>
+      <h1 className="font-display text-5xl text-ink-700 mb-12">Услуги</h1>
 
-      <div className="grid md:grid-cols-2 gap-12 mt-12">
+      <div className="grid md:grid-cols-2 gap-12">
         <ServiceColumn title="Женский зал" items={female} />
         <ServiceColumn title="Мужской зал" items={male} />
       </div>
@@ -48,18 +47,15 @@ export function GuestServices() {
 function ServiceColumn({ title, items }: { title: string; items: Service[] }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-widest text-ink-300 mb-4">— {title}</div>
-      <ul className="space-y-3">
-        {items.map((s) => (
-          <li key={s.id} className="flex items-center justify-between border-b border-dashed border-cream-300 pb-3">
-            <div>
-              <div className="font-display text-lg text-ink-700">{s.name}</div>
-              <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">{s.durationMin} мин</div>
-            </div>
-            <div className="text-ink-700 font-medium">{formatPrice(Number(s.price))}</div>
-          </li>
-        ))}
-      </ul>
+      <div className="text-xs uppercase tracking-widest text-ink-300 mb-6">— {title}</div>
+      <ServiceListGrouped
+        services={items.map((s) => ({
+          id: s.id,
+          name: s.name,
+          durationMin: s.durationMin,
+          price: Number(s.price),
+        }))}
+      />
     </div>
   );
 }

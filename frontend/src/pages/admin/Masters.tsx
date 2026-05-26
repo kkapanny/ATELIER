@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { PageHeading } from "./Clients";
 import { Button } from "@/components/ui/Button";
 import { MasterAvatar } from "@/components/MasterAvatar";
+import { formatMasterSpecialties } from "@/lib/masterSpecialties";
 
 export function AdminMasters() {
   const qc = useQueryClient();
@@ -31,7 +32,12 @@ export function AdminMasters() {
             <div className="flex-1">
               <div className="font-display text-lg text-ink-700">{m.fullName}</div>
               <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">
-                {m.hall?.name === "male" ? "Мужской зал" : "Женский зал"} · разряд {m.rank}
+                {(() => {
+                  const specs = formatMasterSpecialties(
+                    m.services?.map((row: { service: { name: string } }) => ({ name: row.service.name })),
+                  );
+                  return specs ? `${specs} · разряд ${m.rank}` : `разряд ${m.rank}`;
+                })()}
               </div>
               <div className="text-sm text-ink-500 mt-2">{m.bio || "Без описания"}</div>
               <div className="mt-3 flex items-center gap-2">

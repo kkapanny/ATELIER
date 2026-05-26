@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import { MasterAvatar } from "@/components/MasterAvatar";
+import { formatMasterSpecialtyWithYears } from "@/lib/masterSpecialties";
 import { Tabs } from "@/components/ui/Tabs";
+import { ServiceListGrouped } from "@/components/ServiceListGrouped";
 
 export function ClientMasterDetail() {
   const { id } = useParams();
@@ -29,7 +31,7 @@ export function ClientMasterDetail() {
           </div>
           <h2 className="font-display text-2xl text-ink-700">{master.fullName}</h2>
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-2">
-            {master.hall?.name === "male" ? "Мужской зал" : "Женский зал"} · {master.experienceYears} лет
+            {formatMasterSpecialtyWithYears(master.services, master.experienceYears)}
           </div>
         </aside>
 
@@ -40,25 +42,10 @@ export function ClientMasterDetail() {
                 id: "services",
                 label: "Услуги и цены",
                 content: (
-                  <ul className="space-y-3">
-                    {master.services.map((s: any) => (
-                      <li key={s.id} className="flex items-center justify-between border-b border-dashed border-cream-300 pb-3">
-                        <div>
-                          <div className="font-display text-lg text-ink-700">{s.name}</div>
-                          <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">{s.durationMin} мин</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-ink-700 font-medium">{formatPrice(s.price)}</span>
-                          <Link
-                            to={`/client/masters/${master.id}/calendar?service_id=${s.id}`}
-                            className="btn-primary text-xs"
-                          >
-                            Записаться
-                          </Link>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <ServiceListGrouped
+                    services={master.services}
+                    bookBasePath={`/client/masters/${master.id}/calendar`}
+                  />
                 ),
               },
               {

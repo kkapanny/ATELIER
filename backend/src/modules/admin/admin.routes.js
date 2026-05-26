@@ -74,7 +74,7 @@ router.delete("/clients/:id", async (req, res, next) => {
 router.get("/masters", async (_req, res, next) => {
   try {
     const masters = await prisma.master.findMany({
-      include: { user: true, hall: true },
+      include: { user: true, hall: true, services: { include: { service: true } } },
       orderBy: { id: "asc" },
     });
     res.json(masters);
