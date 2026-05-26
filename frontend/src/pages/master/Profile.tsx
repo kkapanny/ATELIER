@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth";
 import { Tabs } from "@/components/ui/Tabs";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { MasterAvatar } from "@/components/MasterAvatar";
 
 export function MasterProfile() {
   const { user } = useAuthStore();
@@ -31,13 +32,11 @@ export function MasterProfile() {
       <div className="grid md:grid-cols-[300px_1fr] gap-8">
         <aside className="bg-white rounded-2xl border border-cream-200 p-6 text-center self-start">
           <div className="aspect-square rounded-2xl overflow-hidden bg-cream-200 mb-5">
-            {master?.avatarUrl ? (
-              <img src={master.avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full grid place-items-center font-display text-6xl text-ink-300">
-                {user?.fullName.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-              </div>
-            )}
+            <MasterAvatar
+              fullName={user?.fullName ?? me.master.fullName ?? "Мастер"}
+              avatarUrl={master?.avatarUrl}
+              className="w-full h-full object-cover object-top"
+            />
           </div>
           <h2 className="font-display text-2xl text-ink-700">{user?.fullName}</h2>
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-2">

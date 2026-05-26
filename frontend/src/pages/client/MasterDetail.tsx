@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
+import { MasterAvatar } from "@/components/MasterAvatar";
 import { Tabs } from "@/components/ui/Tabs";
 
 export function ClientMasterDetail() {
@@ -20,13 +21,11 @@ export function ClientMasterDetail() {
       <div className="mt-6 grid md:grid-cols-[360px_1fr_280px] gap-8">
         <aside className="bg-white rounded-2xl border border-cream-200 p-6 text-center">
           <div className="aspect-square rounded-2xl overflow-hidden bg-cream-200 mb-5">
-            {master.avatarUrl ? (
-              <img src={master.avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full grid place-items-center font-display text-6xl text-ink-300">
-                {master.fullName.split(" ").map((p: string) => p[0]).slice(0, 2).join("")}
-              </div>
-            )}
+            <MasterAvatar
+              fullName={master.fullName}
+              avatarUrl={master.avatarUrl}
+              className="w-full h-full object-cover object-top"
+            />
           </div>
           <h2 className="font-display text-2xl text-ink-700">{master.fullName}</h2>
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-2">

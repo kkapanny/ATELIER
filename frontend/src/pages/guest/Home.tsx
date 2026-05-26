@@ -2,6 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { MasterAvatar } from "@/components/MasterAvatar";
+
+const MANICURE_IMAGE = "/images/manicure-hero.png";
+const COLORING_IMAGE = "/images/coloring-hero.png";
+const MAKEUP_IMAGE = "/images/makeup.png";
+const HERO_ATELIER_IMAGE = "/images/hero-atelier.png";
+const COMING_SOON_IMAGE = "/images/coming-soon.png";
 
 interface Master {
   id: number;
@@ -25,8 +32,8 @@ export function GuestHome() {
       {/* Hero — просторный белый блок с фото-картой и оверлеем (как на референсе BEAUTY ROOM) */}
       <section className="page-shell pt-6 lg:pt-10">
         <div className="bg-white rounded-3xl shadow-soft border border-cream-200/70 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr]">
-            <div className="p-10 lg:p-14 flex flex-col">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] lg:items-stretch">
+            <div className="p-10 lg:p-14 flex flex-col justify-center">
               <h1 className="font-display text-6xl lg:text-7xl leading-[1.05] text-ink-700">
                 ATELIER
               </h1>
@@ -36,16 +43,16 @@ export function GuestHome() {
               </p>
 
               <div className="mt-10 grid grid-cols-2 gap-3 max-w-md">
-                <PromoMini title="Маникюр" img="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600" />
-                <PromoMini title="Окрашивание" img="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600" />
+                <PromoMini title="Маникюр" img={MANICURE_IMAGE} />
+                <PromoMini title="Окрашивание" img={COLORING_IMAGE} />
               </div>
             </div>
 
-            <div className="relative bg-cream-200 min-h-[420px] lg:min-h-[560px]">
+            <div className="relative bg-cream-200 min-h-[280px] lg:min-h-0 lg:h-full">
               <img
-                src="https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200"
-                alt="ATELIER"
-                className="absolute inset-0 w-full h-full object-cover"
+                src={HERO_ATELIER_IMAGE}
+                alt="Интерьер салона ATELIER"
+                className="absolute inset-0 w-full h-full object-cover object-center"
               />
               <div className="absolute bottom-6 right-6">
                 <Link to="/login" className="btn-pill">Записаться</Link>
@@ -79,17 +86,27 @@ export function GuestHome() {
         <h2 className="font-display text-3xl text-ink-700 mb-8">Услуги</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { t: "Макияж", img: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600" },
-            { t: "Окрашивание волос", img: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=900" },
-            { t: "Ногтевой сервис", img: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600" },
-            { t: "Косметология", img: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600" },
+            { t: "Макияж", img: MAKEUP_IMAGE },
+            { t: "Окрашивание волос", img: COLORING_IMAGE },
+            { t: "Ногтевой сервис", img: MANICURE_IMAGE },
+            { t: "Косметология", img: COMING_SOON_IMAGE, placeholder: true },
             { t: "Стрижки", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600" },
-            { t: "Тату", img: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600" },
-            { t: "Перманентный макияж", img: "https://images.unsplash.com/photo-1522335789203-aaa617e2462d?w=600" },
-            { t: "Пирсинг", img: "https://images.unsplash.com/photo-1598548103586-cd7d8e7e3aff?w=600" },
+            { t: "Тату", img: COMING_SOON_IMAGE, placeholder: true },
+            { t: "Перманентный макияж", img: COMING_SOON_IMAGE, placeholder: true },
+            { t: "Пирсинг", img: COMING_SOON_IMAGE, placeholder: true },
           ].map((s) => (
             <Link to="/services" key={s.t} className="group relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-200">
-              <img src={s.img} alt={s.t} className="w-full h-full object-cover group-hover:scale-105 transition" />
+              <img
+                src={s.img}
+                alt={s.t}
+                className={`w-full h-full group-hover:scale-105 transition ${
+                  "placeholder" in s && s.placeholder
+                    ? "object-contain bg-white p-8"
+                    : s.t === "Макияж"
+                      ? "object-cover object-top"
+                      : "object-cover"
+                }`}
+              />
               <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-ink-700/70 to-transparent text-cream-50 text-sm flex justify-between items-center">
                 {s.t}
                 <span>↗</span>
@@ -115,13 +132,11 @@ export function GuestHome() {
               className="group rounded-2xl bg-white border border-cream-200 overflow-hidden flex flex-col hover:shadow-card transition"
             >
               <div className="aspect-[3/4] bg-cream-200 relative overflow-hidden">
-                {m.avatarUrl ? (
-                  <img src={m.avatarUrl} alt={m.fullName} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                ) : (
-                  <div className="w-full h-full grid place-items-center font-display text-5xl text-ink-300">
-                    {m.fullName.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-                  </div>
-                )}
+                <MasterAvatar
+                  fullName={m.fullName}
+                  avatarUrl={m.avatarUrl}
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition"
+                />
                 <span className="absolute top-3 left-3 pill-soft">{m.hall.name === "male" ? "Мужской зал" : "Женский зал"}</span>
               </div>
               <div className="p-5 flex flex-col gap-1 flex-1">
@@ -141,8 +156,24 @@ export function GuestHome() {
         <h2 className="font-display text-3xl text-ink-700 mb-8">Специальные предложения</h2>
         <div className="grid md:grid-cols-2 gap-5">
           {[
-            { title: "Organic brows", img: "https://images.unsplash.com/photo-1522335789203-aaa617e2462d?w=900", text: "Дополнительные процедуры в сезон, продукты от любимых брендов" },
-            { title: "Заботливый уход", img: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=900", text: "При записи на сложное окрашивание/стрижку" },
+            {
+              title: "Цвет сезона",
+              img: COLORING_IMAGE,
+              discount: "−15%",
+              bullets: [
+                "−15% на сложное окрашивание и балаяж",
+                "Акция действует до конца сезона",
+              ],
+            },
+            {
+              title: "Заботливый уход",
+              img: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=900",
+              discount: "−10%",
+              bullets: [
+                "−10% на уходовую косметику при записи на любую процедуру",
+                "Акция действует до конца сезона",
+              ],
+            },
           ].map((p) => (
             <div key={p.title} className="relative aspect-[3/2] overflow-hidden rounded-2xl">
               <img src={p.img} alt={p.title} className="absolute inset-0 w-full h-full object-cover" />
@@ -151,13 +182,13 @@ export function GuestHome() {
                 <div>
                   <h3 className="font-display text-3xl">{p.title}</h3>
                   <ul className="text-sm mt-3 space-y-1 list-disc list-inside opacity-90 max-w-sm">
-                    <li>Для ребрендинга от 6 услуг</li>
-                    <li>Для первого визита и тон в тон</li>
-                    <li>Действуют до конца сезона</li>
+                    {p.bullets.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
                   </ul>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-display text-3xl">−10% скидка</span>
+                  <span className="font-display text-3xl">{p.discount ?? "−10%"} скидка</span>
                   <Button variant="pill" onClick={() => (window.location.href = "/login")}>Записаться</Button>
                 </div>
               </div>
@@ -172,8 +203,8 @@ export function GuestHome() {
 function PromoMini({ title, img }: { title: string; img: string }) {
   return (
     <Link to="/services" className="block">
-      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-cream-200">
-        <img src={img} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-cream-200 bg-ink-700">
+        <img src={img} alt={title} className="absolute inset-0 w-full h-full object-cover object-center" />
         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-ink-700/70 text-cream-50 text-sm flex justify-between items-center">
           {title}<span>↗</span>
         </div>

@@ -84,7 +84,7 @@ async function main() {
           rank: 5,
           experienceYears: 8,
           bio: "Колорист с опытом более 8 лет. Специализация — балаяж, airtouch, восстановление.",
-          avatarUrl: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600",
+          avatarUrl: "/images/masters/olga-kuznetsova.png",
           socialLinks: { instagram: "@olga.color", telegram: "@olga_kuznetsova" },
           averageRating: 4.9,
           isActive: true,
@@ -114,7 +114,7 @@ async function main() {
       rank: 4,
       experienceYears: 6,
       bio: "Мастер маникюра и дизайна ногтей.",
-      avatarUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600",
+      avatarUrl: "/images/masters/olga-sokolova.png",
       averageRating: 4.8,
     },
     {
@@ -125,7 +125,7 @@ async function main() {
       rank: 5,
       experienceYears: 5,
       bio: "Барбер, точная работа машинкой и ножницами.",
-      avatarUrl: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600",
+      avatarUrl: "/images/masters/ivan-sidorov.png",
       averageRating: 4.7,
     },
     {
@@ -136,7 +136,7 @@ async function main() {
       rank: 5,
       experienceYears: 9,
       bio: "Стрижки и укладки, индивидуальный подбор формы.",
-      avatarUrl: "https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?w=600",
+      avatarUrl: "/images/masters/maria-novikova.png",
       averageRating: 4.9,
     },
     {
@@ -147,7 +147,7 @@ async function main() {
       rank: 4,
       experienceYears: 7,
       bio: "Косметолог-эстетист, чистки и уход за лицом.",
-      avatarUrl: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600",
+      avatarUrl: "/images/masters/elena-orlova.png",
       averageRating: 4.8,
     },
     {
@@ -158,7 +158,7 @@ async function main() {
       rank: 4,
       experienceYears: 4,
       bio: "Барбер, моделирование бороды и стрижка машинкой.",
-      avatarUrl: "https://images.unsplash.com/photo-1521119989659-a83eee488004?w=600",
+      avatarUrl: "/images/masters/dmitriy-volkov.png",
       averageRating: 4.6,
     },
   ];

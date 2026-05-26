@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PageHeading } from "./Clients";
 import { Button } from "@/components/ui/Button";
+import { MasterAvatar } from "@/components/MasterAvatar";
 
 export function AdminMasters() {
   const qc = useQueryClient();
@@ -22,9 +23,11 @@ export function AdminMasters() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {masters.map((m: any) => (
           <div key={m.id} className="bg-white border border-cream-200 rounded-2xl p-5 flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-cream-200 grid place-items-center font-display text-xl text-ink-300">
-              {m.fullName.split(" ").map((p: string) => p[0]).slice(0, 2).join("")}
-            </div>
+            <MasterAvatar
+              fullName={m.fullName}
+              avatarUrl={m.avatarUrl}
+              className="w-16 h-16 rounded-full object-cover object-top shrink-0"
+            />
             <div className="flex-1">
               <div className="font-display text-lg text-ink-700">{m.fullName}</div>
               <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">

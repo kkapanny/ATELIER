@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { classNames } from "@/lib/utils";
+import { MasterAvatar } from "@/components/MasterAvatar";
 
 interface Master {
   id: number;
@@ -49,13 +50,11 @@ export function ClientHome() {
                 className="group rounded-2xl bg-white border border-cream-200 overflow-hidden flex flex-col hover:shadow-card transition"
               >
                 <div className="aspect-[4/5] bg-cream-200 relative overflow-hidden">
-                  {m.avatarUrl ? (
-                    <img src={m.avatarUrl} alt={m.fullName} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                  ) : (
-                    <div className="w-full h-full grid place-items-center font-display text-5xl text-ink-300">
-                      {m.fullName.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-                    </div>
-                  )}
+                  <MasterAvatar
+                    fullName={m.fullName}
+                    avatarUrl={m.avatarUrl}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition"
+                  />
                   <span className="absolute top-3 left-3 pill-soft">
                     {m.hall.name === "male" ? "Мужской зал" : "Женский зал"}
                   </span>

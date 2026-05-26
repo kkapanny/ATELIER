@@ -27,7 +27,7 @@ export function GuestAbout() {
       </div>
 
       {/* Команда */}
-      <div className="mt-20">
+      <div id="team" className="mt-20 scroll-mt-24">
         <h2 className="font-display text-3xl text-ink-700 mb-8">Команда</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {[
