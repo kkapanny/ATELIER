@@ -42,7 +42,7 @@ export function MasterProfile() {
           </div>
           <h2 className="font-display text-2xl text-ink-700">{user?.fullName}</h2>
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-2">
-            {formatMasterSpecialtyWithYears(master?.services, me.master.experienceYears)}
+            {formatMasterSpecialtyWithYears(master?.services, me.master.experienceYears, master?.specialties)}
           </div>
           <div className="grid grid-cols-3 gap-2 mt-6">
             <Stat label={`★ ${master?.averageRating.toFixed(1) ?? "0.0"}`} desc="оценка" />

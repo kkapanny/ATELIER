@@ -31,7 +31,7 @@ export function ClientMasterDetail() {
           </div>
           <h2 className="font-display text-2xl text-ink-700">{master.fullName}</h2>
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-2">
-            {formatMasterSpecialtyWithYears(master.services, master.experienceYears)}
+            {formatMasterSpecialtyWithYears(master.services, master.experienceYears, master.specialties)}
           </div>
         </aside>
 

@@ -115,6 +115,7 @@ model Master {
   rank            Int       @default(3)
   experienceYears Int       @default(1)
   bio             String?
+  specialties     String[]  @default([])
   avatarUrl       String?
   socialLinks     Json?
   averageRating   Float     @default(0)

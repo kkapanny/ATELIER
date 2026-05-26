@@ -15,6 +15,7 @@ interface Master {
   averageRating: number;
   avatarUrl?: string | null;
   services?: { name: string }[];
+  specialties?: string[];
 }
 
 export function ClientHome() {
@@ -67,6 +68,7 @@ export function ClientHome() {
                   <div className="font-display text-xl text-ink-700">{m.fullName}</div>
                   <MasterSpecialtyLine
                     services={m.services}
+                    specialties={m.specialties}
                     experienceYears={m.experienceYears}
                     className="text-xs uppercase tracking-widest text-ink-300 mt-1"
                   />

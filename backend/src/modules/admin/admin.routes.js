@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
+import bcrypt from "bcrypt";
 import { prisma } from "../../lib/prisma.js";
 import { authenticate } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
+import { HttpError } from "../../middleware/error.js";
 
 const router = Router();
 
@@ -78,6 +80,89 @@ router.get("/masters", async (_req, res, next) => {
       orderBy: { id: "asc" },
     });
     res.json(masters);
+  } catch (e) { next(e); }
+});
+
+const createMasterSchema = z.object({
+  fullName: z.string().trim().min(2),
+  login: z.string().trim().min(2).max(40),
+  password: z.string().min(3),
+  phone: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((v) => v.replace(/\D/g, "").length >= 10, "phone_invalid"),
+  hallName: z.enum(["male", "female"]),
+  serviceIds: z.array(z.number().int()).min(1),
+  specialties: z
+    .array(z.enum(["Стрижка", "Окрашивание", "Уход за волосами", "Макияж", "Борода", "Маникюр"]))
+    .min(1),
+  rank: z.number().int().min(1).max(5),
+  experienceYears: z.number().int().min(0).max(50),
+  bio: z.string().trim().optional(),
+});
+
+router.post("/masters", validateBody(createMasterSchema), async (req, res, next) => {
+  try {
+    const {
+      fullName,
+      login,
+      password,
+      phone,
+      hallName,
+      serviceIds,
+      specialties,
+      rank,
+      experienceYears,
+      bio,
+    } = req.body;
+
+    const existing = await prisma.user.findUnique({ where: { login } });
+    if (existing) throw new HttpError(409, "login_already_taken");
+
+    const hall = await prisma.hall.findUnique({ where: { name: hallName } });
+    if (!hall) throw new HttpError(400, "hall_not_found");
+
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds }, hallId: hall.id, isActive: true },
+    });
+    if (services.length !== serviceIds.length) {
+      throw new HttpError(400, "invalid_services_for_hall");
+    }
+
+    const gender = hallName === "male" ? "male" : "female";
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        login,
+        phone,
+        passwordHash,
+        role: "master",
+        master: {
+          create: {
+            fullName,
+            gender,
+            hallId: hall.id,
+            rank,
+            experienceYears,
+            bio: bio || null,
+            specialties,
+            isActive: true,
+            services: {
+              create: serviceIds.map((serviceId) => ({ serviceId })),
+            },
+          },
+        },
+      },
+      include: {
+        master: {
+          include: { hall: true, services: { include: { service: true } } },
+        },
+      },
+    });
+
+    res.status(201).json(user.master);
   } catch (e) { next(e); }
 });
 

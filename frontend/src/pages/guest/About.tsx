@@ -10,6 +10,7 @@ interface Master {
   fullName: string;
   avatarUrl?: string | null;
   services?: { name: string }[];
+  specialties?: string[];
 }
 
 export function GuestAbout() {
@@ -61,7 +62,7 @@ export function GuestAbout() {
             <TeamCard
               key={m.id}
               name={m.fullName}
-              role={formatMasterSpecialties(m.services) || "Мастер"}
+              role={formatMasterSpecialties(m.services, m.specialties) || "Мастер"}
               image={getMasterAvatarUrl({ fullName: m.fullName, avatarUrl: m.avatarUrl })}
               to={`/masters/${m.id}`}
             />

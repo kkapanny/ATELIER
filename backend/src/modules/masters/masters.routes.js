@@ -109,6 +109,7 @@ function serialize(master, includeReviews = false) {
     rank: master.rank,
     experienceYears: master.experienceYears,
     bio: master.bio,
+    specialties: master.specialties ?? [],
     avatarUrl: master.avatarUrl,
     socialLinks: master.socialLinks,
     averageRating: master.averageRating,

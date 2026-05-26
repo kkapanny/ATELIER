@@ -23,12 +23,17 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  login: z.string().min(2).max(40),
-  password: z.string().min(3),
-  fullName: z.string().min(2),
-  phone: z.string().optional(),
+  login: z.string().trim().min(1, "login_required").max(40),
+  password: z.string().min(1, "password_required").min(3, "password_too_short"),
+  fullName: z.string().trim().min(2),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "phone_required")
+    .refine((v) => v.replace(/\D/g, "").length >= 10, "phone_invalid"),
   gender: z.enum(["male", "female"]),
-  role: z.enum(["client", "master"]).default("client"),
+  role: z.literal("client").default("client"),
+  consent: z.literal(true, { errorMap: () => ({ message: "consent_required" }) }),
 });
 
 async function issueTokens(user) {
@@ -75,7 +80,7 @@ router.post("/login", validateBody(loginSchema), async (req, res, next) => {
 
 router.post("/register", validateBody(registerSchema), async (req, res, next) => {
   try {
-    const { login, password, fullName, phone, gender, role } = req.body;
+    const { login, password, fullName, phone, gender } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { login } });
     if (existing) throw new HttpError(409, "login_already_taken");
@@ -87,21 +92,8 @@ router.post("/register", validateBody(registerSchema), async (req, res, next) =>
         login,
         phone,
         passwordHash,
-        role,
-        ...(role === "client"
-          ? { client: { create: { fullName, gender, category: "casual", phone } } }
-          : {
-              master: {
-                create: {
-                  fullName,
-                  gender,
-                  hallId: 1, // по умолчанию мужской зал; админ может переназначить
-                  rank: 3,
-                  experienceYears: 1,
-                  isActive: false, // на модерации
-                },
-              },
-            }),
+        role: "client",
+        client: { create: { fullName, gender, category: "casual", phone } },
       },
       include: { client: true, master: true },
     });

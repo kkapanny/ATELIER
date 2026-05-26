@@ -1,16 +1,18 @@
-/** Краткие подписи специализации мастера по списку услуг. */
-const SPECIALTY_ORDER = [
+/** Категории мастера для подписи text-xs tracking-widest uppercase. */
+export const MASTER_SPECIALTY_OPTIONS = [
   "Стрижка",
   "Окрашивание",
-  "Маникюр",
+  "Уход за волосами",
   "Макияж",
   "Борода",
-  "Уход за волосами",
+  "Маникюр",
 ] as const;
 
-type Specialty = (typeof SPECIALTY_ORDER)[number];
+export type MasterSpecialtyOption = (typeof MASTER_SPECIALTY_OPTIONS)[number];
 
-function detectSpecialty(serviceName: string): Specialty | null {
+const SPECIALTY_ORDER: readonly MasterSpecialtyOption[] = MASTER_SPECIALTY_OPTIONS;
+
+function detectSpecialty(serviceName: string): MasterSpecialtyOption | null {
   const n = serviceName.toLowerCase();
   if (n.includes("стрижк")) return "Стрижка";
   if (n.includes("окрашив") || n.includes("балаяж")) return "Окрашивание";
@@ -21,8 +23,8 @@ function detectSpecialty(serviceName: string): Specialty | null {
   return null;
 }
 
-export function getMasterSpecialties(services: { name: string }[] = []): Specialty[] {
-  const found = new Set<Specialty>();
+function fromServices(services: { name: string }[] = []): MasterSpecialtyOption[] {
+  const found = new Set<MasterSpecialtyOption>();
   for (const s of services) {
     const tag = detectSpecialty(s.name);
     if (tag) found.add(tag);
@@ -30,15 +32,30 @@ export function getMasterSpecialties(services: { name: string }[] = []): Special
   return SPECIALTY_ORDER.filter((t) => found.has(t));
 }
 
-export function formatMasterSpecialties(services: { name: string }[] = []): string {
-  return getMasterSpecialties(services).join(" · ");
+/** Приоритет у явно заданных категорий (админ), иначе — из услуг. */
+export function resolveMasterSpecialties(
+  services: { name: string }[] = [],
+  stored?: string[] | null,
+): MasterSpecialtyOption[] {
+  if (stored?.length) {
+    return SPECIALTY_ORDER.filter((t) => stored.includes(t));
+  }
+  return fromServices(services);
+}
+
+export function formatMasterSpecialties(
+  services: { name: string }[] = [],
+  stored?: string[] | null,
+): string {
+  return resolveMasterSpecialties(services, stored).join(" · ");
 }
 
 export function formatMasterSpecialtyLine(
   services: { name: string }[] = [],
   experienceYears: number,
+  stored?: string[] | null,
 ): string {
-  const tags = formatMasterSpecialties(services);
+  const tags = formatMasterSpecialties(services, stored);
   if (!tags) return `${experienceYears} лет опыта`;
   return `${tags} · ${experienceYears} лет`;
 }
@@ -46,14 +63,17 @@ export function formatMasterSpecialtyLine(
 export function formatMasterSpecialtyWithYears(
   services: { name: string }[] = [],
   experienceYears: number,
+  stored?: string[] | null,
 ): string {
-  const tags = formatMasterSpecialties(services);
+  const tags = formatMasterSpecialties(services, stored);
   if (!tags) return `${experienceYears} лет`;
   return `${tags} · ${experienceYears} лет`;
 }
 
-/** Первая специализация — для бейджа на фото. */
-export function primaryMasterSpecialty(services: { name: string }[] = []): string {
-  const tags = getMasterSpecialties(services);
+export function primaryMasterSpecialty(
+  services: { name: string }[] = [],
+  stored?: string[] | null,
+): string {
+  const tags = resolveMasterSpecialties(services, stored);
   return tags[0] ?? "Мастер";
 }

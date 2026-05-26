@@ -22,6 +22,7 @@ interface Master {
   avatarUrl?: string | null;
   averageRating: number;
   services?: { name: string }[];
+  specialties?: string[];
 }
 
 export function GuestHome() {
@@ -146,7 +147,11 @@ export function GuestHome() {
               </div>
               <div className="p-5 flex flex-col gap-1 flex-1">
                 <div className="font-display text-xl text-ink-700">{m.fullName}</div>
-                <MasterSpecialtyLine services={m.services} experienceYears={m.experienceYears} />
+                <MasterSpecialtyLine
+                  services={m.services}
+                  specialties={m.specialties}
+                  experienceYears={m.experienceYears}
+                />
                 <div className="mt-2 text-sm text-ink-500">★ {m.averageRating.toFixed(1)}</div>
               </div>
             </Link>
