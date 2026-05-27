@@ -85,7 +85,7 @@ model RefreshToken {
 
 model Client {
   id              Int             @id @default(autoincrement())
-  userId          Int             @unique
+  userId          Int?            @unique
   fullName        String
   gender          Gender
   category        ClientCategory  @default(casual)
@@ -93,7 +93,8 @@ model Client {
   phone           String?
   birthDate       DateTime?
   notes           String?
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registeredAt    DateTime        @default(now())
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   appointments    Appointment[]
   reviews         Review[]
 }

@@ -27,6 +27,13 @@ export function startRemindersWorker() {
       });
       if (!appointment) return;
       if (appointment.status === "cancelled" || appointment.status === "no_show") return;
+      if (!appointment.client.userId) {
+        await prisma.notification.update({
+          where: { id: notif.id },
+          data: { status: "failed", errorMessage: "client_has_no_account" },
+        });
+        return;
+      }
 
       const subs = await prisma.pushSubscription.findMany({
         where: { userId: appointment.client.userId },

@@ -6,8 +6,67 @@ import { authenticate } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
 import { HttpError } from "../../middleware/error.js";
+import { scheduleReminders, cancelReminders } from "../../queue/reminders.queue.js";
 
 const router = Router();
+
+function categoryDiscount(category) {
+  return category === "regular" ? 10 : 0;
+}
+
+async function createAppointmentForClient(clientId, { masterId, serviceId, startsAt }) {
+  const start = new Date(startsAt);
+  if (isNaN(start.getTime())) throw new HttpError(400, "invalid_date");
+
+  const [client, master, service] = await Promise.all([
+    prisma.client.findUnique({ where: { id: clientId } }),
+    prisma.master.findUnique({ where: { id: masterId } }),
+    prisma.service.findUnique({ where: { id: serviceId } }),
+  ]);
+  if (!client) throw new HttpError(404, "client_not_found");
+  if (!master) throw new HttpError(404, "master_not_found");
+  if (!service) throw new HttpError(404, "service_not_found");
+
+  const link = await prisma.masterService.findUnique({
+    where: { masterId_serviceId: { masterId, serviceId } },
+  });
+  if (!link) throw new HttpError(400, "master_does_not_provide_service");
+
+  const end = new Date(start.getTime() + service.durationMin * 60 * 1000);
+
+  const appointment = await prisma.$transaction(async (tx) => {
+    const conflict = await tx.appointment.findFirst({
+      where: {
+        masterId,
+        status: { in: ["planned", "confirmed", "completed"] },
+        AND: [{ startsAt: { lt: end } }, { endsAt: { gt: start } }],
+      },
+    });
+    if (conflict) throw new HttpError(409, "slot_taken");
+
+    const price = Number(service.price);
+    const discount = client.discountPercent
+      ? Math.round(price * (client.discountPercent / 100) * 100) / 100
+      : 0;
+
+    return tx.appointment.create({
+      data: {
+        clientId,
+        masterId,
+        serviceId,
+        startsAt: start,
+        endsAt: end,
+        status: "confirmed",
+        priceAtBooking: price,
+        discountApplied: discount,
+      },
+      include: { master: true, service: true, client: true },
+    });
+  });
+
+  await scheduleReminders(appointment);
+  return appointment;
+}
 
 router.use(authenticate, requireRole("admin"));
 
@@ -24,39 +83,206 @@ router.get("/clients", async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
-const clientSchema = z.object({
-  fullName: z.string(),
-  phone: z.string().optional(),
-  gender: z.enum(["male", "female"]),
-  category: z.enum(["regular", "casual"]).default("casual"),
-  discountPercent: z.number().int().min(0).max(50).default(0),
-  login: z.string().min(2),
-  password: z.string().min(3),
-});
+const createClientSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "first_name_required"),
+    lastName: z.string().trim().min(1, "last_name_required"),
+    phone: z
+      .string()
+      .trim()
+      .min(1, "phone_required")
+      .refine((v) => v.replace(/\D/g, "").length >= 10, "phone_invalid"),
+    gender: z.enum(["male", "female"]),
+    login: z.string().trim().max(40).optional(),
+    password: z.string().optional(),
+    category: z.enum(["regular", "casual"]).default("casual"),
+    discountPercent: z.number().int().min(0).max(50).default(0),
+  })
+  .superRefine((data, ctx) => {
+    const hasLogin = Boolean(data.login);
+    const hasPassword = Boolean(data.password);
+    if (hasLogin !== hasPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "login_password_together",
+        path: ["login"],
+      });
+    }
+    if (hasLogin && (data.login?.length ?? 0) < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "login_too_short", path: ["login"] });
+    }
+    if (hasPassword && (data.password?.length ?? 0) < 3) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "password_too_short", path: ["password"] });
+    }
+  });
 
-router.post("/clients", validateBody(clientSchema), async (req, res, next) => {
+router.post("/clients", validateBody(createClientSchema), async (req, res, next) => {
   try {
-    const bcrypt = (await import("bcrypt")).default;
-    const passwordHash = await bcrypt.hash(req.body.password, 10);
-    const user = await prisma.user.create({
-      data: {
-        login: req.body.login,
-        passwordHash,
-        role: "client",
-        phone: req.body.phone,
-        client: {
-          create: {
-            fullName: req.body.fullName,
-            gender: req.body.gender,
-            category: req.body.category,
-            discountPercent: req.body.discountPercent,
-            phone: req.body.phone,
+    const {
+      firstName,
+      lastName,
+      phone,
+      gender,
+      login,
+      password,
+      category,
+      discountPercent,
+    } = req.body;
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    if (login) {
+      const existing = await prisma.user.findUnique({ where: { login } });
+      if (existing) throw new HttpError(409, "login_already_taken");
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await prisma.user.create({
+        data: {
+          login,
+          passwordHash,
+          role: "client",
+          phone,
+          client: {
+            create: {
+              fullName,
+              gender,
+              category,
+              discountPercent,
+              phone,
+            },
           },
         },
+        include: { client: { include: { user: true } } },
+      });
+      return res.status(201).json(user.client);
+    }
+
+    const client = await prisma.client.create({
+      data: {
+        fullName,
+        gender,
+        phone,
+        category,
+        discountPercent,
       },
-      include: { client: true },
+      include: { user: true },
     });
-    res.status(201).json(user);
+    res.status(201).json(client);
+  } catch (e) { next(e); }
+});
+
+const updateClientSchema = z
+  .object({
+    fullName: z.string().trim().min(2).optional(),
+    phone: z
+      .string()
+      .trim()
+      .optional()
+      .refine((v) => !v || v.replace(/\D/g, "").length >= 10, "phone_invalid"),
+    category: z.enum(["regular", "casual"]).optional(),
+    login: z.string().trim().max(40).optional(),
+    password: z.string().optional(),
+    addAccount: z.boolean().optional(),
+    removeAccount: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.addAccount) {
+      if (!data.login || data.login.length < 2) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "login_required", path: ["login"] });
+      }
+      if (!data.password || data.password.length < 3) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "password_required", path: ["password"] });
+      }
+    }
+    if (data.password && data.password.length > 0 && data.password.length < 3) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "password_too_short", path: ["password"] });
+    }
+    if (data.login && data.login.length > 0 && data.login.length < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "login_too_short", path: ["login"] });
+    }
+  });
+
+router.get("/clients/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const client = await prisma.client.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+    if (!client) throw new HttpError(404, "not_found");
+    res.json(client);
+  } catch (e) { next(e); }
+});
+
+router.patch("/clients/:id", validateBody(updateClientSchema), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const client = await prisma.client.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+    if (!client) throw new HttpError(404, "not_found");
+
+    const { fullName, phone, category, login, password, addAccount, removeAccount } = req.body;
+
+    if (removeAccount && client.userId) {
+      await prisma.user.delete({ where: { id: client.userId } });
+      const updated = await prisma.client.findUnique({
+        where: { id },
+        include: { user: true },
+      });
+      return res.json(updated);
+    }
+
+    const clientData = {};
+    if (fullName !== undefined) clientData.fullName = fullName;
+    if (phone !== undefined) {
+      clientData.phone = phone;
+    }
+    if (category !== undefined) {
+      clientData.category = category;
+      clientData.discountPercent = categoryDiscount(category);
+    }
+
+    if (addAccount && !client.userId) {
+      if (!login || !password) throw new HttpError(400, "login_password_required");
+      const existing = await prisma.user.findUnique({ where: { login } });
+      if (existing) throw new HttpError(409, "login_already_taken");
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await prisma.user.create({
+        data: {
+          login,
+          passwordHash,
+          role: "client",
+          phone: phone ?? client.phone,
+        },
+      });
+      clientData.userId = user.id;
+    } else if (client.userId) {
+      const userData = {};
+      if (phone !== undefined) userData.phone = phone;
+      if (login && login !== client.user.login) {
+        const existing = await prisma.user.findUnique({ where: { login } });
+        if (existing && existing.id !== client.userId) throw new HttpError(409, "login_already_taken");
+        userData.login = login;
+      }
+      if (password) {
+        userData.passwordHash = await bcrypt.hash(password, 10);
+      }
+      if (Object.keys(userData).length > 0) {
+        await prisma.user.update({ where: { id: client.userId }, data: userData });
+      }
+    }
+
+    if (Object.keys(clientData).length > 0) {
+      await prisma.client.update({ where: { id }, data: clientData });
+    }
+
+    const updated = await prisma.client.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+    res.json(updated);
   } catch (e) { next(e); }
 });
 
@@ -65,8 +291,79 @@ router.delete("/clients/:id", async (req, res, next) => {
     const id = Number(req.params.id);
     const client = await prisma.client.findUnique({ where: { id } });
     if (!client) return res.status(404).json({ error: "not_found" });
-    await prisma.user.delete({ where: { id: client.userId } });
+    const userId = client.userId;
+    await prisma.client.delete({ where: { id } });
+    if (userId) {
+      await prisma.user.delete({ where: { id: userId } });
+    }
     res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+router.get("/clients/:id/appointments", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const client = await prisma.client.findUnique({ where: { id } });
+    if (!client) throw new HttpError(404, "not_found");
+
+    const items = await prisma.appointment.findMany({
+      where: { clientId: id },
+      orderBy: { startsAt: "desc" },
+      include: { master: true, service: true },
+    });
+    res.json(items);
+  } catch (e) { next(e); }
+});
+
+const adminAppointmentSchema = z.object({
+  masterId: z.number().int(),
+  serviceId: z.number().int(),
+  startsAt: z.string(),
+});
+
+router.post("/clients/:id/appointments", validateBody(adminAppointmentSchema), async (req, res, next) => {
+  try {
+    const clientId = Number(req.params.id);
+    const appointment = await createAppointmentForClient(clientId, req.body);
+    res.status(201).json(appointment);
+  } catch (e) { next(e); }
+});
+
+const patchAppointmentSchema = z.object({
+  startsAt: z.string().optional(),
+  status: z.enum(["planned", "confirmed", "completed", "cancelled", "no_show"]).optional(),
+});
+
+router.patch("/appointments/:id", validateBody(patchAppointmentSchema), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { service: true },
+    });
+    if (!appointment) throw new HttpError(404, "appointment_not_found");
+
+    const data = {};
+    if (req.body.status) data.status = req.body.status;
+    if (req.body.startsAt) {
+      const start = new Date(req.body.startsAt);
+      data.startsAt = start;
+      data.endsAt = new Date(start.getTime() + appointment.service.durationMin * 60 * 1000);
+    }
+    const updated = await prisma.appointment.update({
+      where: { id },
+      data,
+      include: { master: true, service: true, client: true },
+    });
+
+    if (data.startsAt) {
+      await cancelReminders(id);
+      await scheduleReminders(updated);
+    }
+    if (data.status === "cancelled" || data.status === "no_show") {
+      await cancelReminders(id);
+    }
+    res.json(updated);
   } catch (e) { next(e); }
 });
 

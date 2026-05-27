@@ -1,8 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { FormEvent, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { toast } from "@/components/ui/Toast";
+import { ClientPanel } from "./ClientPanel";
 
 export function AdminClients() {
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
   const { data: clients = [] } = useQuery({
     queryKey: ["admin-clients"],
     queryFn: async () => (await api.get("/admin/clients")).data,
@@ -12,19 +21,34 @@ export function AdminClients() {
     <div>
       <PageHeading
         title="Клиенты"
-        subtitle="Полный список клиентов салона с категорией и скидкой"
-        action={<button className="btn-primary">+ Добавить</button>}
+        action={
+          <Button onClick={() => setShowForm((v) => !v)}>
+            {showForm ? "Скрыть форму" : "+ Добавить"}
+          </Button>
+        }
       />
 
-      <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden">
+      {showForm && (
+        <AddClientForm
+          onSuccess={() => {
+            setShowForm(false);
+            qc.invalidateQueries({ queryKey: ["admin-clients"] });
+          }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden mt-6">
         <table className="w-full text-sm">
           <thead className="bg-cream-50 text-ink-400">
             <tr>
               <Th>ФИО</Th>
               <Th>Телефон</Th>
+              <Th>Аккаунт</Th>
               <Th>Категория</Th>
               <Th>Скидка</Th>
               <Th>Дата регистрации</Th>
+              <Th> </Th>
             </tr>
           </thead>
           <tbody>
@@ -33,18 +57,154 @@ export function AdminClients() {
                 <Td className="font-display text-ink-700">{c.fullName}</Td>
                 <Td>{c.phone || "—"}</Td>
                 <Td>
+                  {c.user?.login ? (
+                    <span className="pill-ink">{c.user.login}</span>
+                  ) : (
+                    <span className="pill-cream">Через админа</span>
+                  )}
+                </Td>
+                <Td>
                   <span className={c.category === "regular" ? "pill-ink" : "pill-cream"}>
                     {c.category === "regular" ? "Постоянный" : "Случайный"}
                   </span>
                 </Td>
                 <Td>{c.discountPercent}%</Td>
-                <Td>{formatDate(c.user?.createdAt ?? new Date(), "d MMM yyyy")}</Td>
+                <Td>
+                  {formatDate(c.registeredAt ?? c.user?.createdAt, "d MMM yyyy")}
+                </Td>
+                <Td>
+                  <Button variant="secondary" className="text-xs" onClick={() => setSelectedId(c.id)}>
+                    Управление
+                  </Button>
+                </Td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {selectedId !== null && (
+        <ClientPanel
+          clientId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onDeleted={() => {
+            setSelectedId(null);
+            qc.invalidateQueries({ queryKey: ["admin-clients"] });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function AddClientForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const [withAccount, setWithAccount] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    const fd = new FormData(e.currentTarget);
+    const firstName = String(fd.get("firstName") ?? "").trim();
+    const lastName = String(fd.get("lastName") ?? "").trim();
+    const phone = String(fd.get("phone") ?? "").trim();
+    const gender = fd.get("gender") as "male" | "female";
+    const login = String(fd.get("login") ?? "").trim();
+    const password = String(fd.get("password") ?? "");
+
+    if (!firstName || !lastName) {
+      setError("Укажите имя и фамилию.");
+      return;
+    }
+    if (!phone) {
+      setError("Укажите номер телефона.");
+      return;
+    }
+    if (withAccount && (!login || !password)) {
+      setError("Для входа в кабинет укажите логин и пароль.");
+      return;
+    }
+    if (withAccount && password.length < 3) {
+      setError("Пароль должен быть не короче 3 символов.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post("/admin/clients", {
+        firstName,
+        lastName,
+        phone,
+        gender,
+        ...(withAccount ? { login, password } : {}),
+      });
+      toast("Клиент добавлен", `${firstName} ${lastName}`);
+      onSuccess();
+    } catch (err: any) {
+      const code = err.response?.data?.error;
+      if (code === "login_already_taken") setError("Логин уже занят.");
+      else setError("Не удалось добавить клиента. Проверьте поля.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="bg-white border border-cream-200 rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-4"
+    >
+      <div className="md:col-span-2 font-display text-xl text-ink-700">Новый клиент</div>
+
+      {error && (
+        <div className="md:col-span-2 text-sm bg-red-50 text-red-600 border border-red-100 rounded-lg px-3 py-2">
+          {error}
+        </div>
+      )}
+
+      <Input label="Имя" name="firstName" required autoComplete="given-name" />
+      <Input label="Фамилия" name="lastName" required autoComplete="family-name" />
+      <Input label="Телефон" name="phone" type="tel" required placeholder="+7 (999) 000-00-00" />
+      <div>
+        <label className="field-label">Пол</label>
+        <select name="gender" className="field-input bg-transparent" required defaultValue="female">
+          <option value="female">Женский</option>
+          <option value="male">Мужской</option>
+        </select>
+      </div>
+
+      <div className="md:col-span-2 border-t border-cream-200 pt-4">
+        <label className="flex items-center gap-2 text-sm text-ink-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={withAccount}
+            onChange={(e) => setWithAccount(e.target.checked)}
+          />
+          Создать логин и пароль для самостоятельного входа в кабинет
+        </label>
+        <p className="text-xs text-ink-400 mt-1">
+          Если не отмечено, клиент не сможет войти в систему — записи будет вести администратор.
+        </p>
+      </div>
+
+      {withAccount && (
+        <>
+          <Input label="Логин" name="login" autoComplete="off" />
+          <Input label="Пароль" name="password" type="password" minLength={3} autoComplete="new-password" />
+        </>
+      )}
+
+      <div className="md:col-span-2 flex gap-2 justify-end">
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          Отмена
+        </Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Сохранение…" : "Добавить клиента"}
+        </Button>
+      </div>
+    </form>
   );
 }
 

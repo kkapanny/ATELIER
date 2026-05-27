@@ -8,6 +8,16 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
+/** Даты регистрации демо-клиентов (с 2016 года). */
+const SEED_CLIENT_REGISTERED_AT = [
+  new Date("2016-03-14T10:00:00"),
+  new Date("2018-07-22T11:30:00"),
+  new Date("2020-01-09T09:15:00"),
+  new Date("2022-11-05T14:00:00"),
+  new Date("2024-06-18T16:45:00"),
+  new Date("2017-09-30T12:00:00"),
+];
+
 async function main() {
   console.log("🌱 Запуск seed…");
 
@@ -56,6 +66,7 @@ async function main() {
   const password = (s) => bcrypt.hash(s, 10);
 
   // Пользователи: тестовые аккаунты
+  const userRegisteredAt = SEED_CLIENT_REGISTERED_AT[0];
   const userClient = await prisma.user.create({
     data: {
       login: "user",
@@ -63,6 +74,7 @@ async function main() {
       phone: "+7 (999) 111-22-33",
       passwordHash: await password("user"),
       role: "client",
+      createdAt: userRegisteredAt,
       client: {
         create: {
           fullName: "Анна Петрова",
@@ -70,6 +82,7 @@ async function main() {
           category: "regular",
           discountPercent: 10,
           phone: "+7 (999) 111-22-33",
+          registeredAt: userRegisteredAt,
         },
       },
     },
@@ -228,12 +241,14 @@ async function main() {
   // Пара случайных клиентов для админ-панели
   for (let i = 0; i < 5; i++) {
     const login = `client_${i + 1}`;
+    const registeredAt = SEED_CLIENT_REGISTERED_AT[i + 1];
     await prisma.user.create({
       data: {
         login,
         email: `${login}@atelier.local`,
         passwordHash: await password(login),
         role: "client",
+        createdAt: registeredAt,
         client: {
           create: {
             fullName: ["Мария Иванова", "Дмитрий Соколов", "Светлана Морозова", "Иван Петров", "Елена Новикова"][i],
@@ -241,6 +256,7 @@ async function main() {
             category: i < 3 ? "regular" : "casual",
             discountPercent: i < 3 ? 10 : 0,
             phone: `+7 (925) 444-55-${String(60 + i).padStart(2, "0")}`,
+            registeredAt,
           },
         },
       },
