@@ -1,12 +1,36 @@
 import { Router } from "express";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import { fileURLToPath } from "url";
+import { dirname, join, extname } from "path";
+import { mkdirSync } from "fs";
 import { prisma } from "../../lib/prisma.js";
 import { authenticate } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
 import { HttpError } from "../../middleware/error.js";
 import { scheduleReminders, cancelReminders } from "../../queue/reminders.queue.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const uploadsDir = join(__dirname, "..", "..", "..", "uploads", "masters");
+mkdirSync(uploadsDir, { recursive: true });
+
+const photoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    cb(null, `${unique}${extname(file.originalname)}`);
+  },
+});
+const photoUpload = multer({
+  storage: photoStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("only_images_allowed"));
+  },
+});
 
 const router = Router();
 
@@ -397,6 +421,7 @@ const createMasterSchema = z.object({
   rank: z.number().int().min(1).max(5),
   experienceYears: z.number().int().min(0).max(50),
   bio: z.string().trim().optional(),
+  avatarUrl: z.string().optional(),
 });
 
 router.post("/masters", validateBody(createMasterSchema), async (req, res, next) => {
@@ -412,6 +437,7 @@ router.post("/masters", validateBody(createMasterSchema), async (req, res, next)
       rank,
       experienceYears,
       bio,
+      avatarUrl,
     } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { login } });
@@ -445,6 +471,7 @@ router.post("/masters", validateBody(createMasterSchema), async (req, res, next)
             experienceYears,
             bio: bio || null,
             specialties,
+            avatarUrl: avatarUrl || null,
             isActive: true,
             services: {
               create: serviceIds.map((serviceId) => ({ serviceId })),
@@ -468,6 +495,137 @@ router.post("/masters/:id/activate", async (req, res, next) => {
     const id = Number(req.params.id);
     const updated = await prisma.master.update({ where: { id }, data: { isActive: true } });
     res.json(updated);
+  } catch (e) { next(e); }
+});
+
+const updateMasterSchema = z.object({
+  fullName: z.string().trim().min(2).optional(),
+  login: z.string().trim().min(2).max(40).optional(),
+  password: z.string().min(3).optional(),
+  phone: z.string().trim().min(1).refine((v) => v.replace(/\D/g, "").length >= 10, "phone_invalid").optional(),
+  hallName: z.enum(["male", "female"]).optional(),
+  serviceIds: z.array(z.number().int()).min(1).optional(),
+  specialties: z.array(z.enum(["Стрижка", "Окрашивание", "Уход за волосами", "Макияж", "Борода", "Маникюр"])).min(1).optional(),
+  rank: z.number().int().min(1).max(5).optional(),
+  experienceYears: z.number().int().min(0).max(50).optional(),
+  bio: z.string().trim().optional(),
+  avatarUrl: z.string().optional(),
+});
+
+router.patch("/masters/:id", validateBody(updateMasterSchema), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const master = await prisma.master.findUnique({ where: { id }, include: { user: true } });
+    if (!master) throw new HttpError(404, "master_not_found");
+
+    const { fullName, login, password, phone, hallName, serviceIds, specialties, rank, experienceYears, bio, avatarUrl } = req.body;
+
+    const masterData = {};
+    const userData = {};
+
+    if (fullName !== undefined) masterData.fullName = fullName;
+    if (rank !== undefined) masterData.rank = rank;
+    if (experienceYears !== undefined) masterData.experienceYears = experienceYears;
+    if (bio !== undefined) masterData.bio = bio || null;
+    if (specialties !== undefined) masterData.specialties = specialties;
+    if (avatarUrl !== undefined) masterData.avatarUrl = avatarUrl || null;
+
+    if (hallName !== undefined) {
+      const hall = await prisma.hall.findUnique({ where: { name: hallName } });
+      if (!hall) throw new HttpError(400, "hall_not_found");
+      masterData.hallId = hall.id;
+      masterData.gender = hallName === "male" ? "male" : "female";
+    }
+
+    if (login !== undefined && login !== master.user.login) {
+      const existing = await prisma.user.findUnique({ where: { login } });
+      if (existing) throw new HttpError(409, "login_already_taken");
+      userData.login = login;
+    }
+    if (password !== undefined) userData.passwordHash = await bcrypt.hash(password, 10);
+    if (phone !== undefined) {
+      userData.phone = phone;
+      masterData.phone = phone;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(masterData).length > 0) {
+        await tx.master.update({ where: { id }, data: masterData });
+      }
+      if (Object.keys(userData).length > 0) {
+        await tx.user.update({ where: { id: master.userId }, data: userData });
+      }
+      if (serviceIds !== undefined) {
+        const targetHallId = masterData.hallId ?? master.hallId;
+        const services = await tx.service.findMany({
+          where: { id: { in: serviceIds }, hallId: targetHallId, isActive: true },
+        });
+        if (services.length !== serviceIds.length) throw new HttpError(400, "invalid_services_for_hall");
+        await tx.masterService.deleteMany({ where: { masterId: id } });
+        await tx.masterService.createMany({ data: serviceIds.map((sid) => ({ masterId: id, serviceId: sid })) });
+      }
+    });
+
+    const updated = await prisma.master.findUnique({
+      where: { id },
+      include: { user: true, hall: true, services: { include: { service: true } } },
+    });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/masters/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const master = await prisma.master.findUnique({ where: { id } });
+    if (!master) return res.status(404).json({ error: "not_found" });
+    const userId = master.userId;
+    await prisma.$transaction(async (tx) => {
+      await tx.review.deleteMany({ where: { masterId: id } });
+      await tx.careRecommendation.deleteMany({ where: { createdById: id } });
+      await tx.master.delete({ where: { id } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+router.post("/masters/photo", photoUpload.single("photo"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "no_file" });
+  const url = `/uploads/masters/${req.file.filename}`;
+  res.json({ url });
+});
+
+const scheduleSchema = z.record(
+  z.string(),
+  z.union([
+    z.null(),
+    z.object({
+      start: z.string().regex(/^\d{2}:\d{2}$/),
+      end: z.string().regex(/^\d{2}:\d{2}$/),
+    }),
+  ])
+);
+
+router.get("/masters/:id/schedule", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const master = await prisma.master.findUnique({ where: { id }, select: { workSchedule: true } });
+    if (!master) throw new HttpError(404, "master_not_found");
+    res.json(master.workSchedule || {});
+  } catch (e) { next(e); }
+});
+
+router.put("/masters/:id/schedule", validateBody(scheduleSchema), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const master = await prisma.master.findUnique({ where: { id } });
+    if (!master) throw new HttpError(404, "master_not_found");
+    const updated = await prisma.master.update({
+      where: { id },
+      data: { workSchedule: req.body },
+    });
+    res.json(updated.workSchedule);
   } catch (e) { next(e); }
 });
 

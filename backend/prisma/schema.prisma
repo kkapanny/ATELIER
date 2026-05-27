@@ -119,6 +119,7 @@ model Master {
   specialties     String[]  @default([])
   avatarUrl       String?
   socialLinks     Json?
+  workSchedule    Json?
   averageRating   Float     @default(0)
   isActive        Boolean   @default(true)
 

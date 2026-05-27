@@ -31,7 +31,7 @@ export function SiteFooter() {
           </nav>
           <div className="text-sm space-y-1 text-cream-100/80">
             <div className="grid grid-cols-[60px_1fr] gap-1">
-              <span>Пн–Сб:</span><span>10:00–19:00</span>
+              <span>Пн–Сб:</span><span>10:00–21:00</span>
               <span>Вс:</span><span>выходной</span>
             </div>
             <div className="pt-2 text-cream-100/60">г. Москва, ул. Примерная, 12</div>

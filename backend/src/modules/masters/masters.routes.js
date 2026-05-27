@@ -49,7 +49,7 @@ router.get("/:id", async (req, res, next) => {
 
 /**
  * Свободные слоты мастера на конкретную дату.
- * Логика: рабочее окно 10:00–19:00, шаг 30 мин, длительность услуги — из БД.
+ * Логика: рабочее окно 10:00–21:00, шаг 30 мин, длительность услуги — из БД.
  * Слот считается свободным, если на интервале нет confirmed/planned записей.
  */
 router.get("/:id/availability", async (req, res, next) => {
@@ -78,7 +78,7 @@ router.get("/:id/availability", async (req, res, next) => {
     const slots = [];
     const stepMin = 30;
     const startHour = 10;
-    const endHour = 19;
+    const endHour = 21;
     for (let h = startHour; h < endHour; h++) {
       for (let m = 0; m < 60; m += stepMin) {
         const slotStart = new Date(day);
