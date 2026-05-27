@@ -21,20 +21,11 @@ const SEED_CLIENT_REGISTERED_AT = [
 async function main() {
   console.log("🌱 Запуск seed…");
 
-  // Очистка — для повторных запусков. Безопасно для разработки.
-  await prisma.notification.deleteMany();
-  await prisma.review.deleteMany();
-  await prisma.careRecommendation.deleteMany();
-  await prisma.appointment.deleteMany();
-  await prisma.masterService.deleteMany();
-  await prisma.pushSubscription.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.master.deleteMany();
-  await prisma.client.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.service.deleteMany();
-  await prisma.hall.deleteMany();
-  await prisma.promoCode.deleteMany();
+  const existingUsers = await prisma.user.count();
+  if (existingUsers > 0) {
+    console.log(`⏭️  База уже содержит данные (${existingUsers} пользователей) — seed пропущен.`);
+    return;
+  }
 
   // Залы
   const maleHall = await prisma.hall.create({
