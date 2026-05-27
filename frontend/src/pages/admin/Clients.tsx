@@ -11,10 +11,21 @@ export function AdminClients() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
   const { data: clients = [] } = useQuery({
     queryKey: ["admin-clients"],
     queryFn: async () => (await api.get("/admin/clients")).data,
+  });
+
+  const filtered = clients.filter((c: any) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    const qDigits = q.replace(/\D/g, "");
+    if (c.fullName?.toLowerCase().includes(q)) return true;
+    if (qDigits.length > 0 && c.phone?.replace(/\D/g, "").includes(qDigits)) return true;
+    if (c.phone?.toLowerCase().includes(q)) return true;
+    return false;
   });
 
   return (
@@ -38,7 +49,32 @@ export function AdminClients() {
         />
       )}
 
-      <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden mt-6">
+      <div className="relative mt-6 mb-4">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8"/>
+            <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        </span>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Поиск по ФИО или телефону…"
+          className="field-input pl-9 w-full max-w-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-600 transition-colors text-lg leading-none"
+            style={{ maxWidth: "calc(100% - 24rem)" }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-cream-50 text-ink-400">
             <tr>
@@ -52,7 +88,14 @@ export function AdminClients() {
             </tr>
           </thead>
           <tbody>
-            {clients.map((c: any) => (
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-ink-400">
+                  {search ? `Ничего не найдено по запросу «${search}»` : "Нет клиентов"}
+                </td>
+              </tr>
+            )}
+            {filtered.map((c: any) => (
               <tr key={c.id} className="border-t border-cream-200 hover:bg-cream-50">
                 <Td className="font-display text-ink-700">{c.fullName}</Td>
                 <Td>{c.phone || "—"}</Td>
