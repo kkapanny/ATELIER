@@ -119,6 +119,7 @@ function serialize(master, includeReviews = false) {
         name: s.service.name,
         durationMin: s.service.durationMin,
         price: Number(s.customPrice ?? s.service.price),
+        category: s.service.category ?? null,
       })),
     ),
     ...(includeReviews

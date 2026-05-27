@@ -140,6 +140,7 @@ model Service {
   price        Decimal   @db.Decimal(10, 2)
   durationMin  Int
   description  String?
+  category     String?
   isActive     Boolean   @default(true)
   hall         Hall      @relation(fields: [hallId], references: [id])
   masters      MasterService[]

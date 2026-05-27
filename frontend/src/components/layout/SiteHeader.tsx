@@ -27,9 +27,11 @@ export function SiteHeader() {
 
   async function handleLogout() {
     try { await api.post("/auth/logout"); } catch { /* ignore */ }
+    // Navigate first so the ProtectedRoute re-render sees a public location
+    // and doesn't inject a stale `from` state into the /login entry.
+    navigate("/", { replace: true });
     clear();
     toast("Вы вышли из аккаунта", "До встречи в ATELIER", "info");
-    navigate("/");
   }
 
   const r = role();

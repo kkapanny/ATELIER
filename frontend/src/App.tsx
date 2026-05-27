@@ -27,6 +27,7 @@ import { MasterProfile } from "./pages/master/Profile";
 
 import { AdminClients } from "./pages/admin/Clients";
 import { AdminMasters } from "./pages/admin/Masters";
+import { AdminServices } from "./pages/admin/Services";
 import { AdminSchedule } from "./pages/admin/Schedule";
 import { AdminReports } from "./pages/admin/Reports";
 
@@ -61,7 +62,7 @@ export function App() {
         <Route path="/admin" element={<Navigate to="/admin/clients" replace />} />
         <Route path="/admin/clients" element={<AdminClients />} />
         <Route path="/admin/masters" element={<AdminMasters />} />
-        <Route path="/admin/services" element={<AdminClients />} />
+        <Route path="/admin/services" element={<AdminServices />} />
         <Route path="/admin/halls" element={<AdminClients />} />
         <Route path="/admin/discounts" element={<AdminClients />} />
         <Route path="/admin/templates" element={<AdminClients />} />

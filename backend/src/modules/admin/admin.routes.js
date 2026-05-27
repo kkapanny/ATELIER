@@ -754,4 +754,73 @@ router.get("/reports/top-master", async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ===========================================================
+// Услуги (CRUD)
+// ===========================================================
+router.get("/services", async (_req, res, next) => {
+  try {
+    const services = await prisma.service.findMany({
+      include: { hall: true },
+      orderBy: [{ hallId: "asc" }, { name: "asc" }],
+    });
+    res.json(services);
+  } catch (e) { next(e); }
+});
+
+const serviceSchema = z.object({
+  name: z.string().trim().min(1),
+  price: z.number().positive(),
+  durationMin: z.number().int().min(5).max(480),
+  hallName: z.enum(["male", "female"]),
+  category: z.string().trim().optional(),
+  description: z.string().trim().optional(),
+});
+
+router.post("/services", validateBody(serviceSchema), async (req, res, next) => {
+  try {
+    const { name, price, durationMin, hallName, category, description } = req.body;
+    const hall = await prisma.hall.findUnique({ where: { name: hallName } });
+    if (!hall) throw new HttpError(400, "hall_not_found");
+    const service = await prisma.service.create({
+      data: { name, price, durationMin, hallId: hall.id, category: category || null, description: description || null },
+      include: { hall: true },
+    });
+    res.status(201).json(service);
+  } catch (e) { next(e); }
+});
+
+router.patch("/services/:id", validateBody(serviceSchema.partial()), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const service = await prisma.service.findUnique({ where: { id } });
+    if (!service) throw new HttpError(404, "service_not_found");
+
+    const data = {};
+    const { name, price, durationMin, hallName, category, description } = req.body;
+    if (name !== undefined) data.name = name;
+    if (price !== undefined) data.price = price;
+    if (durationMin !== undefined) data.durationMin = durationMin;
+    if (category !== undefined) data.category = category || null;
+    if (description !== undefined) data.description = description || null;
+    if (hallName !== undefined) {
+      const hall = await prisma.hall.findUnique({ where: { name: hallName } });
+      if (!hall) throw new HttpError(400, "hall_not_found");
+      data.hallId = hall.id;
+    }
+
+    const updated = await prisma.service.update({ where: { id }, data, include: { hall: true } });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+router.delete("/services/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const service = await prisma.service.findUnique({ where: { id } });
+    if (!service) return res.status(404).json({ error: "not_found" });
+    await prisma.service.update({ where: { id }, data: { isActive: false } });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 export default router;

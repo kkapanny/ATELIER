@@ -1,15 +1,23 @@
 /** Порядок видов услуг в каталоге. */
-const SERVICE_KIND_ORDER = ["haircut", "hairCare", "coloring", "manicure", "makeup"];
+const SERVICE_KIND_ORDER = ["hair", "haircut", "hairCare", "coloring", "manicure", "makeup"];
+const VALID_KINDS = new Set(SERVICE_KIND_ORDER);
 
 /** Мини-разделы прайса. */
 export const SERVICE_CATALOG_SECTIONS = [
-  { id: "hair", title: "Стрижка и уход", kinds: ["haircut", "hairCare"] },
+  { id: "hair", title: "Стрижка и уход", kinds: ["hair", "haircut", "hairCare"] },
   { id: "coloring", title: "Окрашивание", kinds: ["coloring"] },
   { id: "manicure", title: "Маникюр", kinds: ["manicure"] },
   { id: "makeup", title: "Макияж", kinds: ["makeup"] },
 ];
 
-export function getServiceKind(name) {
+/** Принимает объект услуги (с полем category) или строку (имя). */
+export function getServiceKind(service) {
+  if (typeof service === "string") return getKindFromName(service);
+  if (service.category && VALID_KINDS.has(service.category)) return service.category;
+  return getKindFromName(service.name);
+}
+
+function getKindFromName(name) {
   const n = name.toLowerCase();
   if (n.includes("маникюр")) return "manicure";
   if (n.includes("макияж")) return "makeup";
@@ -27,8 +35,8 @@ function kindSortIndex(kind) {
 /** Сортировка: стрижка → уход → окрашивание → маникюр → макияж. */
 export function sortServicesByCatalog(services) {
   return [...services].sort((a, b) => {
-    const ka = kindSortIndex(getServiceKind(a.name));
-    const kb = kindSortIndex(getServiceKind(b.name));
+    const ka = kindSortIndex(getServiceKind(a));
+    const kb = kindSortIndex(getServiceKind(b));
     if (ka !== kb) return ka - kb;
     return a.name.localeCompare(b.name, "ru");
   });
@@ -40,6 +48,6 @@ export function groupServicesByCatalog(services) {
   return SERVICE_CATALOG_SECTIONS.map((section) => ({
     id: section.id,
     title: section.title,
-    items: sorted.filter((s) => section.kinds.includes(getServiceKind(s.name))),
+    items: sorted.filter((s) => section.kinds.includes(getServiceKind(s))),
   })).filter((g) => g.items.length > 0);
 }

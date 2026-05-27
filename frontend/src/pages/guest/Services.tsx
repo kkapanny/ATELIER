@@ -8,6 +8,7 @@ interface Service {
   name: string;
   durationMin: number;
   price: number;
+  category?: string | null;
   description?: string | null;
   hall: { name: string };
 }
@@ -54,6 +55,7 @@ function ServiceColumn({ title, items }: { title: string; items: Service[] }) {
           name: s.name,
           durationMin: s.durationMin,
           price: Number(s.price),
+          category: s.category,
         }))}
       />
     </div>

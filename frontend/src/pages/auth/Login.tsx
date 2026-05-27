@@ -24,7 +24,13 @@ export function LoginPage() {
       const res = await api.post("/auth/login", { login, password });
       setSession(res.data.accessToken, res.data.user);
       toast(`Добро пожаловать, ${res.data.user.fullName}`, "Вход выполнен");
-      const to = location.state?.from?.pathname ?? defaultRoute(res.data.user.role);
+      const from = location.state?.from?.pathname as string | undefined;
+      const def = defaultRoute(res.data.user.role);
+      // Only restore `from` if it belongs to the same role section to avoid
+      // cross-account redirects (e.g. admin landing on a client page after
+      // logging out from a client account).
+      const roleRoot = "/" + def.split("/")[1]; // "/admin" | "/client" | "/master"
+      const to = from && from.startsWith(roleRoot) ? from : def;
       navigate(to, { replace: true });
     } catch (err: any) {
       if (!err.response) {
