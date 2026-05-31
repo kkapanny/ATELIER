@@ -18,7 +18,6 @@ export function AdminSchedule() {
     <div>
       <PageHeading
         title="Расписание"
-        subtitle="Все записи салона на выбранный день"
         action={
           <input
             type="date"
@@ -29,19 +28,17 @@ export function AdminSchedule() {
         }
       />
 
-      <div className="grid grid-cols-5 gap-3 text-xs text-ink-400 mb-3 max-w-md">
-        <Legend cls="bg-blue-100 text-blue-700">Запланировано</Legend>
-        <Legend cls="bg-emerald-100 text-emerald-700">Подтверждено</Legend>
-        <Legend cls="bg-cream-200 text-ink-500">Завершено</Legend>
-        <Legend cls="bg-red-100 text-red-700">Отменено</Legend>
-        <Legend cls="bg-amber-100 text-amber-700">Не пришёл</Legend>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {LEGEND_STATUSES.map((status) => (
+          <StatusPill key={status} status={status} />
+        ))}
       </div>
 
       <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-cream-50 text-ink-400">
             <tr>
-              <Th>Время</Th><Th>Мастер</Th><Th>Клиент</Th><Th>Услуга</Th><Th>Статус</Th>
+              <Th>Время</Th><Th>Мастер</Th><Th>Клиент</Th><Th>Услуга</Th><Th className="w-0 whitespace-nowrap">Статус</Th>
             </tr>
           </thead>
           <tbody>
@@ -54,7 +51,7 @@ export function AdminSchedule() {
                 <Td className="text-ink-700">{a.master?.fullName}</Td>
                 <Td>{a.client?.fullName}</Td>
                 <Td>{a.service?.name}</Td>
-                <Td><StatusPill status={a.status} /></Td>
+                <Td className="w-0 whitespace-nowrap"><StatusPill status={a.status} /></Td>
               </tr>
             ))}
           </tbody>
@@ -64,29 +61,39 @@ export function AdminSchedule() {
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    planned: "bg-blue-100 text-blue-700",
-    confirmed: "bg-emerald-100 text-emerald-700",
-    completed: "bg-cream-200 text-ink-500",
-    cancelled: "bg-red-100 text-red-700",
-    no_show: "bg-amber-100 text-amber-700",
-  };
-  const labels: Record<string, string> = {
-    planned: "Запланировано",
-    confirmed: "Подтверждено",
-    completed: "Завершено",
-    cancelled: "Отменено",
-    no_show: "Не пришёл",
-  };
-  return <span className={classNames("pill", map[status])}>{labels[status]}</span>;
-}
+const LEGEND_STATUSES = ["planned", "confirmed", "completed", "cancelled", "no_show"] as const;
 
-function Legend({ children, cls }: { children: React.ReactNode; cls: string }) {
-  return <span className={classNames("pill", cls)}>{children}</span>;
+const STATUS_STYLES: Record<string, string> = {
+  planned: "bg-blue-100 text-blue-700",
+  confirmed: "bg-emerald-100 text-emerald-700",
+  completed: "bg-cream-200 text-ink-500",
+  cancelled: "bg-red-100 text-red-700",
+  no_show: "bg-amber-100 text-amber-700",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  planned: "Запланировано",
+  confirmed: "Подтверждено",
+  completed: "Завершено",
+  cancelled: "Отменено",
+  no_show: "Не пришёл",
+};
+
+function StatusPill({ status }: { status: string }) {
+  return (
+    <span
+      className={classNames(
+        "inline-flex items-center justify-center shrink-0 w-max max-w-max",
+        "px-3 py-1 rounded-full text-xs tracking-wide whitespace-nowrap",
+        STATUS_STYLES[status],
+      )}
+    >
+      {STATUS_LABELS[status]}
+    </span>
+  );
 }
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="text-left px-4 py-3 text-[11px] uppercase tracking-widest font-medium">{children}</th>;
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <th className={classNames("text-left px-4 py-3 text-[11px] uppercase tracking-widest font-medium", className)}>{children}</th>;
 }
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={"px-4 py-3 " + className}>{children}</td>;
