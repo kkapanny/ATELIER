@@ -63,9 +63,6 @@ export function App() {
         <Route path="/admin/clients" element={<AdminClients />} />
         <Route path="/admin/masters" element={<AdminMasters />} />
         <Route path="/admin/services" element={<AdminServices />} />
-        <Route path="/admin/halls" element={<AdminClients />} />
-        <Route path="/admin/discounts" element={<AdminClients />} />
-        <Route path="/admin/templates" element={<AdminClients />} />
         <Route path="/admin/schedule" element={<AdminSchedule />} />
         <Route path="/admin/reports" element={<AdminReports />} />
       </Route>

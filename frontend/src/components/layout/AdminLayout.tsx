@@ -7,9 +7,6 @@ const sections = [
   { to: "/admin/clients", label: "Клиенты", icon: "★" },
   { to: "/admin/masters", label: "Мастера", icon: "✦" },
   { to: "/admin/services", label: "Услуги", icon: "◆" },
-  { to: "/admin/halls", label: "Залы", icon: "□" },
-  { to: "/admin/discounts", label: "Скидки", icon: "%" },
-  { to: "/admin/templates", label: "Шаблоны уведомлений", icon: "≡" },
   { to: "/admin/schedule", label: "Расписание", icon: "▦" },
   { to: "/admin/reports", label: "Отчёты", icon: "▌" },
 ];
@@ -26,8 +23,8 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-[260px_1fr]">
-      <aside className="bg-ink-700 text-cream-100 flex flex-col">
+    <div className="min-h-screen">
+      <aside className="fixed inset-y-0 left-0 z-20 w-[260px] bg-ink-700 text-cream-100 flex flex-col">
         <div className="px-6 py-6 font-display text-2xl tracking-widest">
           ATELIER<span className="text-cream-100/40 text-xs ml-2 align-top">/admin</span>
         </div>
@@ -58,7 +55,7 @@ export function AdminLayout() {
         </div>
       </aside>
 
-      <main className="bg-cream-50 min-h-screen">
+      <main className="ml-[260px] bg-cream-50 min-h-screen">
         <div className="max-w-7xl mx-auto px-8 py-8">
           <Outlet />
         </div>
