@@ -33,9 +33,34 @@ export function AdminClients() {
       <PageHeading
         title="Клиенты"
         action={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? "Скрыть форму" : "+ Добавить"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                  <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Поиск по ФИО или телефону…"
+                className="field-input pl-8 pr-7 w-80 text-sm"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-600 transition-colors text-lg leading-none"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <Button onClick={() => setShowForm((v) => !v)}>
+              {showForm ? "Скрыть форму" : "+ Добавить"}
+            </Button>
+          </div>
         }
       />
 
@@ -49,32 +74,7 @@ export function AdminClients() {
         />
       )}
 
-      <div className="relative mt-6 mb-4">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8"/>
-            <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-        </span>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по ФИО или телефону…"
-          className="field-input pl-9 w-full max-w-sm"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-600 transition-colors text-lg leading-none"
-            style={{ maxWidth: "calc(100% - 24rem)" }}
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-cream-200 rounded-2xl overflow-hidden mt-6">
         <table className="w-full text-sm">
           <thead className="bg-cream-50 text-ink-400">
             <tr>
