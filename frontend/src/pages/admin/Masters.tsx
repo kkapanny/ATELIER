@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PageHeading } from "./Clients";
@@ -47,6 +47,38 @@ function buildDefaultSchedule(): WorkSchedule {
   return sched;
 }
 
+const CARD_GAP_PX = 16;
+
+function useMasterColumnCount(compact: boolean): number {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mqMd = window.matchMedia("(min-width: 768px)");
+      const mqLg = window.matchMedia("(min-width: 1024px)");
+      mqMd.addEventListener("change", onStoreChange);
+      mqLg.addEventListener("change", onStoreChange);
+      return () => {
+        mqMd.removeEventListener("change", onStoreChange);
+        mqLg.removeEventListener("change", onStoreChange);
+      };
+    },
+    () => {
+      if (compact) return 2;
+      if (window.matchMedia("(min-width: 1024px)").matches) return 3;
+      if (window.matchMedia("(min-width: 768px)").matches) return 2;
+      return 1;
+    },
+    () => 1,
+  );
+}
+
+function distributeToColumns<T>(items: T[], columnCount: number): T[][] {
+  const columns = Array.from({ length: columnCount }, () => [] as T[]);
+  items.forEach((item, index) => {
+    columns[index % columnCount].push(item);
+  });
+  return columns;
+}
+
 export function AdminMasters() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -57,6 +89,12 @@ export function AdminMasters() {
     queryKey: ["admin-masters"],
     queryFn: async () => (await api.get("/admin/masters")).data,
   });
+
+  const columnCount = useMasterColumnCount(Boolean(selectedMaster));
+  const masterColumns = useMemo(
+    () => distributeToColumns(masters, columnCount),
+    [masters, columnCount],
+  );
 
   const deleteMaster = useMutation({
     mutationFn: async (id: number) => (await api.delete(`/admin/masters/${id}`)).data,
@@ -122,11 +160,17 @@ export function AdminMasters() {
           />
         )}
 
-        <div className={classNames(
-          "grid gap-4 mt-6",
-          selectedMaster ? "grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3",
-        )}>
-          {masters.map((m: any) => {
+        <div
+          className="flex mt-6 items-start"
+          style={{ gap: CARD_GAP_PX }}
+        >
+          {masterColumns.map((column, columnIndex) => (
+            <div
+              key={columnIndex}
+              className="flex-1 min-w-0 flex flex-col"
+              style={{ gap: CARD_GAP_PX }}
+            >
+              {column.map((m: any) => {
             const serviceNames = m.services?.map((row: { service: { name: string } }) => ({
               name: row.service.name,
             }));
@@ -139,45 +183,49 @@ export function AdminMasters() {
                 key={m.id}
                 onClick={() => { if (!isEditing) setSelectedMaster(isSelected ? null : m); }}
                 className={classNames(
-                  "bg-white border rounded-2xl p-5 flex gap-4 transition-all hover:shadow-md",
+                  "bg-white border rounded-2xl p-5 flex flex-col gap-0 transition-all hover:shadow-md",
                   isEditing ? "border-amber-400 ring-1 ring-amber-300 cursor-default" :
                   isSelected ? "border-ink-500 ring-1 ring-ink-400 cursor-pointer" :
                   "border-cream-200 cursor-pointer",
                 )}
               >
-                <MasterAvatar
-                  fullName={m.fullName}
-                  avatarUrl={m.avatarUrl}
-                  className="w-16 h-16 rounded-full object-cover object-top shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="font-display text-lg text-ink-700">{m.fullName}</div>
-                  <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">
-                    {specs ? `${specs} · разряд ${m.rank}` : `разряд ${m.rank}`}
-                  </div>
-                  <div className="text-xs text-ink-400 mt-1">{formatHallLabel(m.hall)}</div>
-                  <div className="text-sm text-ink-500 mt-2">{m.bio || "Без описания"}</div>
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <span className={workStatus.className}>{workStatus.label}</span>
-                    <div className="ml-auto flex flex-col items-end gap-1">
-                      <button
-                        onClick={(e) => openEdit(e, m)}
-                        className="text-xs text-ink-500 hover:text-ink-800 transition-colors px-2 py-1 rounded hover:bg-cream-100"
-                      >
-                        Изменить
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e, m)}
-                        className="text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1 rounded hover:bg-red-50"
-                      >
-                        Удалить
-                      </button>
+                <div className="flex gap-4">
+                  <MasterAvatar
+                    fullName={m.fullName}
+                    avatarUrl={m.avatarUrl}
+                    className="w-16 h-16 rounded-full object-cover object-top shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-lg text-ink-700">{m.fullName}</div>
+                    <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">
+                      {specs ? `${specs} · разряд ${m.rank}` : `разряд ${m.rank}`}
                     </div>
+                    <div className="text-xs text-ink-400 mt-1">{formatHallLabel(m.hall)}</div>
+                    <div className="text-sm text-ink-500 mt-2">{m.bio || "Без описания"}</div>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center w-full">
+                  <span className={workStatus.className}>{workStatus.label}</span>
+                  <div className="ml-auto flex items-center gap-1">
+                    <button
+                      onClick={(e) => openEdit(e, m)}
+                      className="text-xs text-ink-500 hover:text-ink-800 transition-colors px-2 py-1 rounded hover:bg-cream-100"
+                    >
+                      Изменить
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, m)}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1 rounded hover:bg-red-50"
+                    >
+                      Удалить
+                    </button>
                   </div>
                 </div>
               </div>
             );
-          })}
+              })}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -240,6 +288,9 @@ function MasterSchedulePanel({ master, onClose }: { master: any; onClose: () => 
     setSaving(true);
     try {
       await api.put(`/admin/masters/${master.id}/schedule`, schedule);
+      qc.setQueryData(["admin-masters"], (old: any[] | undefined) =>
+        old?.map((m) => (m.id === master.id ? { ...m, workSchedule: schedule } : m)),
+      );
       qc.invalidateQueries({ queryKey: ["admin-master-schedule", master.id] });
       toast("График сохранён", master.fullName);
     } catch {
