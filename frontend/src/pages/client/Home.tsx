@@ -7,6 +7,12 @@ import { MasterAvatar } from "@/components/MasterAvatar";
 import { MasterSpecialtyLine } from "@/components/MasterSpecialtyLine";
 import { formatHallLabel } from "@/lib/hall";
 
+interface Hall {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
 interface Master {
   id: number;
   fullName: string;
@@ -18,12 +24,28 @@ interface Master {
   specialties?: string[];
 }
 
+type SortOption = "rating" | "experience";
+
 export function ClientHome() {
   const [hallId, setHallId] = useState<number | null>(null);
+  const [sort, setSort] = useState<SortOption>("rating");
+
+  const { data: halls = [] } = useQuery({
+    queryKey: ["halls"],
+    queryFn: async () => (await api.get<Hall[]>("/halls")).data,
+  });
 
   const { data: masters = [] } = useQuery({
-    queryKey: ["masters", { hallId }],
-    queryFn: async () => (await api.get<Master[]>("/masters", { params: { hall_id: hallId ?? undefined } })).data,
+    queryKey: ["masters", { hallId, sort }],
+    queryFn: async () =>
+      (
+        await api.get<Master[]>("/masters", {
+          params: {
+            hall_id: hallId ?? undefined,
+            sort,
+          },
+        })
+      ).data,
   });
 
   return (
@@ -32,14 +54,24 @@ export function ClientHome() {
         <aside className="md:w-60 shrink-0">
           <div className="text-xs uppercase tracking-widest text-ink-300 mb-3">Зал</div>
           <div className="space-y-1">
-            <FilterBtn active={hallId === null} onClick={() => setHallId(null)}>Все</FilterBtn>
-            <FilterBtn active={hallId === 1} onClick={() => setHallId(1)}>Мужской</FilterBtn>
-            <FilterBtn active={hallId === 2} onClick={() => setHallId(2)}>Женский</FilterBtn>
+            <FilterBtn active={hallId === null} onClick={() => setHallId(null)}>
+              Все
+            </FilterBtn>
+            {halls.map((hall) => (
+              <FilterBtn key={hall.id} active={hallId === hall.id} onClick={() => setHallId(hall.id)}>
+                {formatHallLabel(hall).replace(/ зал$/i, "")}
+              </FilterBtn>
+            ))}
           </div>
 
           <div className="text-xs uppercase tracking-widest text-ink-300 mt-8 mb-3">Сортировка</div>
-          <div className="space-y-1 text-sm text-ink-500">
-            <div className="px-3 py-2 rounded-md bg-cream-50 border border-cream-200">По рейтингу</div>
+          <div className="space-y-1">
+            <FilterBtn active={sort === "rating"} onClick={() => setSort("rating")}>
+              По рейтингу
+            </FilterBtn>
+            <FilterBtn active={sort === "experience"} onClick={() => setSort("experience")}>
+              По опыту
+            </FilterBtn>
           </div>
         </aside>
 

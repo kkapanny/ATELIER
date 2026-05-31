@@ -6,6 +6,7 @@ import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
 import { HttpError } from "../../middleware/error.js";
 import { scheduleReminders, cancelReminders } from "../../queue/reminders.queue.js";
+import { isWithinWorkSchedule } from "../../lib/work-schedule.js";
 
 const router = Router();
 
@@ -31,6 +32,9 @@ router.post("/", authenticate, requireRole("client", "admin"), validateBody(crea
     if (!service) throw new HttpError(404, "service_not_found");
 
     const end = new Date(start.getTime() + service.durationMin * 60 * 1000);
+    if (!isWithinWorkSchedule(master.workSchedule, start, end)) {
+      throw new HttpError(400, "outside_work_schedule");
+    }
 
     const appointment = await prisma.$transaction(async (tx) => {
       // Проверка пересечения слотов мастера. Для строгой защиты от гонок

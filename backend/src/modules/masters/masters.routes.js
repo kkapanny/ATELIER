@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../lib/prisma.js";
 import { HttpError } from "../../middleware/error.js";
 import { sortServicesByCatalog } from "../../lib/service-catalog.js";
+import { generateSlotsForDay, getDayScheduleForDate, parseCalendarDate, formatCalendarDate, salonDayBoundsUtc } from "../../lib/work-schedule.js";
 
 const router = Router();
 
@@ -48,9 +49,9 @@ router.get("/:id", async (req, res, next) => {
 });
 
 /**
- * Свободные слоты мастера на конкретную дату.
- * Логика: рабочее окно 10:00–21:00, шаг 30 мин, длительность услуги — из БД.
- * Слот считается свободным, если на интервале нет confirmed/planned записей.
+ * Слоты мастера на конкретную дату.
+ * Окно берётся из workSchedule (график в панели админа), шаг 30 мин.
+ * Слоты вне рабочего времени не возвращаются; занятые — available: false.
  */
 router.get("/:id/availability", async (req, res, next) => {
   try {
@@ -59,44 +60,40 @@ router.get("/:id/availability", async (req, res, next) => {
     const serviceId = Number(req.query.service_id);
     if (!dateStr || !serviceId) throw new HttpError(400, "date_and_service_required");
 
-    const service = await prisma.service.findUnique({ where: { id: serviceId } });
+    const [master, service] = await Promise.all([
+      prisma.master.findUnique({ where: { id }, select: { workSchedule: true } }),
+      prisma.service.findUnique({ where: { id: serviceId } }),
+    ]);
+    if (!master) throw new HttpError(404, "master_not_found");
     if (!service) throw new HttpError(404, "service_not_found");
 
-    const day = new Date(dateStr);
-    day.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(day);
-    dayEnd.setDate(dayEnd.getDate() + 1);
+    const parts = parseCalendarDate(dateStr);
+    if (!parts) throw new HttpError(400, "invalid_date");
+    const calendarDate = formatCalendarDate(parts);
+
+    const daySchedule = getDayScheduleForDate(master.workSchedule, calendarDate);
+    if (!daySchedule) {
+      return res.json({ masterId: id, serviceId, slots: [], dayOff: true });
+    }
+
+    const { dayStart, dayEnd } = salonDayBoundsUtc(calendarDate);
 
     const busy = await prisma.appointment.findMany({
       where: {
         masterId: id,
-        startsAt: { gte: day, lt: dayEnd },
+        startsAt: { gte: dayStart, lt: dayEnd },
         status: { in: ["planned", "confirmed", "completed"] },
       },
     });
 
-    const slots = [];
-    const stepMin = 30;
-    const startHour = 10;
-    const endHour = 21;
-    for (let h = startHour; h < endHour; h++) {
-      for (let m = 0; m < 60; m += stepMin) {
-        const slotStart = new Date(day);
-        slotStart.setHours(h, m, 0, 0);
-        const slotEnd = new Date(slotStart.getTime() + service.durationMin * 60 * 1000);
-        if (slotEnd.getHours() + slotEnd.getMinutes() / 60 > endHour) continue;
+    const slots = generateSlotsForDay({
+      dateStr: calendarDate,
+      daySchedule,
+      durationMin: service.durationMin,
+      busy,
+    });
 
-        const overlap = busy.some(
-          (a) => slotStart < a.endsAt && slotEnd > a.startsAt,
-        );
-        slots.push({
-          startsAt: slotStart.toISOString(),
-          endsAt: slotEnd.toISOString(),
-          available: !overlap,
-        });
-      }
-    }
-    res.json({ masterId: id, serviceId, slots });
+    res.json({ masterId: id, serviceId, slots, dayOff: false });
   } catch (e) { next(e); }
 });
 

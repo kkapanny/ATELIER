@@ -333,11 +333,12 @@ function BookAppointmentForm({ clientId, onSuccess }: { clientId: number; onSucc
     enabled: !!masterId,
   });
 
+  const dateKey = format(day, "yyyy-MM-dd");
   const { data: availability } = useQuery({
-    queryKey: ["availability", masterId, serviceId, day.toISOString()],
+    queryKey: ["availability", masterId, serviceId, dateKey],
     queryFn: async () =>
       (await api.get(`/masters/${masterId}/availability`, {
-        params: { service_id: serviceId, date: day.toISOString() },
+        params: { service_id: serviceId, date: dateKey },
       })).data,
     enabled: !!masterId && !!serviceId,
   });
@@ -439,7 +440,7 @@ function BookAppointmentForm({ clientId, onSuccess }: { clientId: number; onSucc
             ) : (
               <div className="flex flex-wrap gap-2 mt-2">
                 {freeSlots.map((s: any) => {
-                  const time = format(new Date(s.startsAt), "HH:mm");
+                  const time = s.time ?? format(new Date(s.startsAt), "HH:mm");
                   const active = selected === s.startsAt;
                   return (
                     <button

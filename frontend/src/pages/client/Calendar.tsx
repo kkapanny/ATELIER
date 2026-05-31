@@ -17,10 +17,10 @@ export function ClientCalendar() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["availability", id, serviceId, day.toISOString()],
+    queryKey: ["availability", id, serviceId, format(day, "yyyy-MM-dd")],
     queryFn: async () =>
       (await api.get(`/masters/${id}/availability`, {
-        params: { service_id: serviceId, date: day.toISOString() },
+        params: { service_id: serviceId, date: format(day, "yyyy-MM-dd") },
       })).data,
     enabled: !!id && !!serviceId,
   });
@@ -43,7 +43,6 @@ export function ClientCalendar() {
     <div className="page-shell">
       <Link to={`/client/masters/${id}`} className="text-xs uppercase tracking-widest text-ink-300 hover:text-ink-700">← К мастеру</Link>
       <h1 className="font-display text-4xl text-ink-700 mt-3">Выбор времени</h1>
-      <p className="text-ink-400 text-sm mt-1">Шаг — 30 минут. Зелёные слоты доступны для записи.</p>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-7 gap-3">
         {days.map((d) => {
@@ -86,11 +85,12 @@ export function ClientCalendar() {
 function DaySlots({
   day, masterId, serviceId, selected, onSelect,
 }: { day: Date; masterId: number; serviceId: number; selected: string | null; onSelect: (iso: string) => void }) {
+  const dateKey = format(day, "yyyy-MM-dd");
   const { data } = useQuery({
-    queryKey: ["availability", masterId, serviceId, day.toISOString()],
+    queryKey: ["availability", masterId, serviceId, dateKey],
     queryFn: async () =>
       (await api.get(`/masters/${masterId}/availability`, {
-        params: { service_id: serviceId, date: day.toISOString() },
+        params: { service_id: serviceId, date: dateKey },
       })).data,
     enabled: !!serviceId,
   });
@@ -98,10 +98,12 @@ function DaySlots({
   const slots = data?.slots ?? [];
   return (
     <div className="space-y-1.5">
-      {slots.length === 0 && <div className="text-xs text-ink-300 text-center py-4">—</div>}
+      {data?.dayOff && <div className="text-xs text-ink-300 text-center py-4">выходной</div>}
+      {!data?.dayOff && slots.length === 0 && <div className="text-xs text-ink-300 text-center py-4">—</div>}
       {slots.map((s: any) => {
-        const time = format(new Date(s.startsAt), "HH:mm");
+        const time = s.time ?? format(new Date(s.startsAt), "HH:mm");
         const active = selected === s.startsAt;
+        const isOccupied = s.occupied ?? !s.available;
         return (
           <button
             key={s.startsAt}
@@ -109,7 +111,7 @@ function DaySlots({
             onClick={() => onSelect(s.startsAt)}
             className={classNames(
               "w-full text-center py-1.5 text-sm rounded-md",
-              !s.available && "bg-cream-100 text-ink-300 line-through cursor-not-allowed",
+              isOccupied && "bg-cream-100 text-ink-300 line-through cursor-not-allowed",
               s.available && !active && "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
               active && "bg-ink-700 text-cream-50",
             )}

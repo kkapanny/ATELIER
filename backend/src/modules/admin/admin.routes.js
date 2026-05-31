@@ -11,6 +11,7 @@ import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
 import { HttpError } from "../../middleware/error.js";
 import { scheduleReminders, cancelReminders } from "../../queue/reminders.queue.js";
+import { isWithinWorkSchedule } from "../../lib/work-schedule.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = join(__dirname, "..", "..", "..", "uploads", "masters");
@@ -57,6 +58,9 @@ async function createAppointmentForClient(clientId, { masterId, serviceId, start
   if (!link) throw new HttpError(400, "master_does_not_provide_service");
 
   const end = new Date(start.getTime() + service.durationMin * 60 * 1000);
+  if (!isWithinWorkSchedule(master.workSchedule, start, end)) {
+    throw new HttpError(400, "outside_work_schedule");
+  }
 
   const appointment = await prisma.$transaction(async (tx) => {
     const conflict = await tx.appointment.findFirst({
