@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { RescheduleModal } from "./RescheduleModal";
 import { ReviewModal, ReviewSummary } from "./ReviewModal";
+import { MasterAvatarCircle } from "@/components/MasterAvatar";
 
 export function ClientCabinet() {
   const { user } = useAuthStore();
@@ -46,9 +47,7 @@ export function ClientCabinet() {
             )}
             {upcoming.map((a: any) => (
               <div key={a.id} className="bg-white border border-cream-200 rounded-2xl p-5 flex items-center gap-5">
-                <div className="w-14 h-14 rounded-full bg-cream-200 grid place-items-center font-display text-lg text-ink-300">
-                  {a.master?.fullName.split(" ").map((p: string) => p[0]).slice(0, 2).join("")}
-                </div>
+                <MasterAvatarCircle fullName={a.master?.fullName ?? ""} avatarUrl={a.master?.avatarUrl} />
                 <div className="flex-1">
                   <div className="font-display text-lg text-ink-700">{a.service?.name}</div>
                   <div className="text-sm text-ink-500">{a.master?.fullName} · {formatDate(a.startsAt)}</div>
@@ -126,9 +125,7 @@ export function HistoryCard({
   return (
     <div className="bg-white border border-cream-200 rounded-2xl p-5">
       <div className="flex items-center gap-5">
-        <div className="w-14 h-14 rounded-full bg-cream-200 grid place-items-center font-display text-lg text-ink-300">
-          {item.master?.fullName.split(" ").map((p: string) => p[0]).slice(0, 2).join("")}
-        </div>
+        <MasterAvatarCircle fullName={item.master?.fullName ?? ""} avatarUrl={item.master?.avatarUrl} />
         <div className="flex-1">
           <div className="font-display text-lg text-ink-700">{item.service?.name}</div>
           <div className="text-sm text-ink-500">{item.master?.fullName} · {formatDate(item.startsAt)}</div>

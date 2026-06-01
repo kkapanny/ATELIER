@@ -7,6 +7,7 @@ import { PageHeading } from "./Clients";
 import { formatDate } from "@/lib/utils";
 import { classNames } from "@/lib/utils";
 import { APPOINTMENT_STATUS_LABELS } from "@/lib/appointmentStatus";
+import { MasterAvatarCircle } from "@/components/MasterAvatar";
 
 export function AdminSchedule() {
   const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -49,7 +50,18 @@ export function AdminSchedule() {
             {items.map((a: any) => (
               <tr key={a.id} className="border-t border-cream-200 hover:bg-cream-50">
                 <Td className="font-mono">{format(new Date(a.startsAt), "HH:mm", { locale: ru })}</Td>
-                <Td className="text-ink-700">{a.master?.fullName}</Td>
+                <Td className="text-ink-700">
+                  <div className="flex items-center gap-2">
+                    {a.master?.fullName && (
+                      <MasterAvatarCircle
+                        fullName={a.master.fullName}
+                        avatarUrl={a.master.avatarUrl}
+                        size="sm"
+                      />
+                    )}
+                    <span>{a.master?.fullName}</span>
+                  </div>
+                </Td>
                 <Td>{a.client?.fullName}</Td>
                 <Td>{a.service?.name}</Td>
                 <Td className="w-0 whitespace-nowrap"><StatusPill status={a.status} /></Td>

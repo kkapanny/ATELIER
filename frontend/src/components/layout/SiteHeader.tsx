@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth";
 import { useState, useRef, useEffect } from "react";
 import { initials } from "@/lib/utils";
+import { MasterAvatar } from "@/components/MasterAvatar";
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui/Toast";
 
@@ -80,9 +81,19 @@ export function SiteHeader() {
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full border border-ink-700/15 hover:border-ink-700/40 transition"
               >
-                <span className="w-8 h-8 rounded-full bg-ink-700 text-cream-50 grid place-items-center text-xs font-medium">
-                  {initials(user?.fullName ?? "")}
-                </span>
+                {r === "master" ? (
+                  <span className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-cream-200">
+                    <MasterAvatar
+                      fullName={user?.fullName ?? ""}
+                      avatarUrl={user?.avatarUrl}
+                      className="w-full h-full object-cover object-top text-xs"
+                    />
+                  </span>
+                ) : (
+                  <span className="w-8 h-8 rounded-full bg-ink-700 text-cream-50 grid place-items-center text-xs font-medium">
+                    {initials(user?.fullName ?? "")}
+                  </span>
+                )}
                 <div className="text-left">
                   <div className="text-sm leading-tight text-ink-700">{user?.fullName}</div>
                   <div className="text-[11px] uppercase tracking-widest text-ink-300">

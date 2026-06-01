@@ -7,7 +7,7 @@ import { ru } from "date-fns/locale";
 import { classNames, formatPrice, bookingErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
-import { MasterAvatar } from "@/components/MasterAvatar";
+import { MasterAvatarCircle } from "@/components/MasterAvatar";
 
 interface SlotMaster {
   id: number;
@@ -219,9 +219,7 @@ function MasterPicker({
                 active ? "border-ink-700 bg-cream-50 ring-1 ring-ink-700" : "border-cream-200 hover:border-ink-300",
               )}
             >
-              <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 bg-cream-200">
-                <MasterAvatar fullName={m.fullName} avatarUrl={m.avatarUrl} className="w-full h-full object-cover" />
-              </div>
+              <MasterAvatarCircle fullName={m.fullName} avatarUrl={m.avatarUrl} />
               <div className="min-w-0">
                 <div className="font-display text-lg text-ink-700 truncate">{m.fullName}</div>
                 <div className="text-xs text-ink-400 mt-0.5">

@@ -9,8 +9,6 @@ export const MASTER_AVATARS_BY_NAME: Record<string, string> = {
 };
 
 export function getMasterAvatarUrl(master: { fullName: string; avatarUrl?: string | null }) {
-  const local = MASTER_AVATARS_BY_NAME[master.fullName];
-  if (local) return local;
-  if (master.avatarUrl?.startsWith("/images/")) return master.avatarUrl;
-  return master.avatarUrl ?? local ?? "";
+  if (master.avatarUrl) return master.avatarUrl;
+  return MASTER_AVATARS_BY_NAME[master.fullName] ?? "";
 }

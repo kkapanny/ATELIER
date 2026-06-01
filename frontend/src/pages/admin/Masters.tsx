@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { PageHeading } from "./Clients";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { MasterAvatar } from "@/components/MasterAvatar";
+import { MasterAvatar, MasterAvatarCircle } from "@/components/MasterAvatar";
 import { formatMasterSpecialties, MASTER_SPECIALTY_OPTIONS } from "@/lib/masterSpecialties";
 import { formatHallLabel } from "@/lib/hall";
 import { toast } from "@/components/ui/Toast";
@@ -190,11 +190,7 @@ export function AdminMasters() {
                 )}
               >
                 <div className="flex gap-4">
-                  <MasterAvatar
-                    fullName={m.fullName}
-                    avatarUrl={m.avatarUrl}
-                    className="w-16 h-16 rounded-full object-cover object-top shrink-0"
-                  />
+                  <MasterAvatarCircle fullName={m.fullName} avatarUrl={m.avatarUrl} size="lg" />
                   <div className="flex-1 min-w-0">
                     <div className="font-display text-lg text-ink-700">{m.fullName}</div>
                     <div className="text-xs uppercase tracking-widest text-ink-300 mt-1">

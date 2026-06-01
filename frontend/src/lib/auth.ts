@@ -13,6 +13,7 @@ export interface AuthUser {
   category?: "regular" | "casual" | null;
   masterId?: number | null;
   clientId?: number | null;
+  avatarUrl?: string | null;
 }
 
 interface AuthState {

@@ -9,6 +9,7 @@ import { format, addDays, startOfDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { classNames } from "@/lib/utils";
 import { APPOINTMENT_STATUS_LABELS } from "@/lib/appointmentStatus";
+import { MasterAvatarCircle } from "@/components/MasterAvatar";
 
 const STATUS_OPTIONS = [
   { value: "planned", label: APPOINTMENT_STATUS_LABELS.planned },
@@ -287,6 +288,14 @@ function ClientAppointments({ clientId }: { clientId: number }) {
           <ul className="divide-y divide-cream-200">
             {appointments.map((a: any) => (
               <li key={a.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                {a.master?.fullName && (
+                  <MasterAvatarCircle
+                    fullName={a.master.fullName}
+                    avatarUrl={a.master.avatarUrl}
+                    size="sm"
+                    className="hidden sm:block"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="font-display text-ink-700">
                     {formatDate(a.startsAt, "d MMM yyyy, HH:mm")}

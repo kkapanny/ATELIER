@@ -166,6 +166,7 @@ function serializeUser(user) {
     category: user.client?.category || null,
     masterId: user.master?.id || null,
     clientId: user.client?.id || null,
+    avatarUrl: user.master?.avatarUrl || null,
   };
 }
 

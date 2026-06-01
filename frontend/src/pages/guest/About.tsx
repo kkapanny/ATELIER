@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { getMasterAvatarUrl } from "@/lib/masterAvatar";
 import { formatMasterSpecialties } from "@/lib/masterSpecialties";
 import { TEAM_ADMIN, TEAM_MASTER_NAMES } from "@/lib/team";
+import { MasterAvatar } from "@/components/MasterAvatar";
 
 interface Master {
   id: number;
@@ -63,7 +63,7 @@ export function GuestAbout() {
               key={m.id}
               name={m.fullName}
               role={formatMasterSpecialties(m.services, m.specialties) || "Мастер"}
-              image={getMasterAvatarUrl({ fullName: m.fullName, avatarUrl: m.avatarUrl })}
+              avatarUrl={m.avatarUrl}
               to={`/masters/${m.id}`}
             />
           ))}
@@ -76,11 +76,13 @@ export function GuestAbout() {
 function TeamCard({
   name,
   role,
+  avatarUrl,
   image,
   to,
 }: {
   name: string;
   role: string;
+  avatarUrl?: string | null;
   image?: string;
   to?: string;
 }) {
@@ -90,9 +92,7 @@ function TeamCard({
         {image ? (
           <img src={image} alt={name} className="w-full h-full object-cover object-top" />
         ) : (
-          <div className="w-full h-full grid place-items-center font-display text-4xl text-ink-300">
-            {name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-          </div>
+          <MasterAvatar fullName={name} avatarUrl={avatarUrl} className="w-full h-full object-cover object-top" />
         )}
       </div>
       <div className="p-4">

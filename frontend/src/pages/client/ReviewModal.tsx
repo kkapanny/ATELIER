@@ -4,12 +4,13 @@ import { api } from "@/lib/api";
 import { classNames, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
+import { MasterAvatarCircle } from "@/components/MasterAvatar";
 
 interface ReviewModalProps {
   appointment: {
     id: number;
     startsAt: string;
-    master?: { fullName: string };
+    master?: { fullName: string; avatarUrl?: string | null };
     service?: { name: string };
     review?: { rating: number; text?: string | null };
   };
@@ -57,13 +58,21 @@ export function ReviewModal({ appointment, onClose, onSuccess }: ReviewModalProp
   return (
     <div className="fixed inset-0 z-50 bg-ink-700/40 flex items-start justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl border border-cream-200 shadow-soft w-full max-w-lg my-8">
-        <div className="flex items-center justify-between border-b border-cream-200 px-6 py-4">
-          <div>
-            <div className="font-display text-2xl text-ink-700">Оставить отзыв</div>
-            <div className="text-sm text-ink-400 mt-1">
-              {appointment.service?.name} · {appointment.master?.fullName}
+        <div className="flex items-center justify-between border-b border-cream-200 px-6 py-4 gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            {appointment.master?.fullName && (
+              <MasterAvatarCircle
+                fullName={appointment.master.fullName}
+                avatarUrl={appointment.master.avatarUrl}
+              />
+            )}
+            <div className="min-w-0">
+              <div className="font-display text-2xl text-ink-700">Оставить отзыв</div>
+              <div className="text-sm text-ink-400 mt-1">
+                {appointment.service?.name} · {appointment.master?.fullName}
+              </div>
+              <div className="text-xs text-ink-300 mt-0.5">{formatDate(appointment.startsAt)}</div>
             </div>
-            <div className="text-xs text-ink-300 mt-0.5">{formatDate(appointment.startsAt)}</div>
           </div>
           <button type="button" onClick={onClose} className="text-ink-400 hover:text-ink-700 text-2xl leading-none">
             ×
