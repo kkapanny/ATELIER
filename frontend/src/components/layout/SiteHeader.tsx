@@ -57,7 +57,6 @@ export function SiteHeader() {
               <NavPill to="/client">Мастера</NavPill>
               <NavPill to="/client/services">Услуги</NavPill>
               <NavPill to="/client/cabinet">Мои записи</NavPill>
-              <NavPill to="/client/history">История</NavPill>
               <NavPill to="/client/notifications">Уведомления</NavPill>
             </>
           )}

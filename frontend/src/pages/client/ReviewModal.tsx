@@ -127,7 +127,7 @@ interface ReviewSummaryProps {
 
 export function ReviewSummary({ review, compact, onEdit }: ReviewSummaryProps) {
   return (
-    <div className={classNames("bg-cream-50 border border-cream-200 rounded-xl p-4", compact ? "mt-3" : "")}>
+    <div className={classNames("bg-cream-50 border border-cream-200 rounded-xl p-4", compact ? "mt-3" : "mt-4")}>
       <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] uppercase tracking-widest text-ink-300">Ваш отзыв</div>
         {onEdit && (

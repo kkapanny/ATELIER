@@ -18,7 +18,6 @@ import { ClientMasterDetail } from "./pages/client/MasterDetail";
 import { ClientCalendar } from "./pages/client/Calendar";
 import { ClientServiceCalendar } from "./pages/client/ServiceCalendar";
 import { ClientCabinet } from "./pages/client/Cabinet";
-import { ClientHistory } from "./pages/client/History";
 import { ClientProfile } from "./pages/client/Profile";
 import { ClientNotifications } from "./pages/client/Notifications";
 
@@ -52,7 +51,6 @@ export function App() {
         <Route path="/client/masters/:id" element={<ProtectedRoute roles={["client", "admin"]}><ClientMasterDetail /></ProtectedRoute>} />
         <Route path="/client/masters/:id/calendar" element={<ProtectedRoute roles={["client", "admin"]}><ClientCalendar /></ProtectedRoute>} />
         <Route path="/client/cabinet" element={<ProtectedRoute roles={["client", "admin"]}><ClientCabinet /></ProtectedRoute>} />
-        <Route path="/client/history" element={<ProtectedRoute roles={["client", "admin"]}><ClientHistory /></ProtectedRoute>} />
         <Route path="/client/profile" element={<ProtectedRoute roles={["client", "admin"]}><ClientProfile /></ProtectedRoute>} />
         <Route path="/client/notifications" element={<ProtectedRoute roles={["client", "admin"]}><ClientNotifications /></ProtectedRoute>} />
 

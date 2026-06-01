@@ -75,14 +75,9 @@ export function ClientCabinet() {
                 Здесь будут ваши прошлые визиты с советами по уходу.
               </div>
             )}
-            {past.slice(0, 3).map((a: any) => (
-              <HistoryCard key={a.id} item={a} compact onReview={() => qc.invalidateQueries({ queryKey: ["my-appointments"] })} />
+            {past.map((a: any) => (
+              <HistoryCard key={a.id} item={a} onReview={() => qc.invalidateQueries({ queryKey: ["my-appointments"] })} />
             ))}
-            {past.length > 3 && (
-              <Link to="/client/history" className="text-sm text-ink-400 hover:text-ink-700 underline-offset-2 hover:underline">
-                Показать всю историю →
-              </Link>
-            )}
           </div>
         </div>
 
