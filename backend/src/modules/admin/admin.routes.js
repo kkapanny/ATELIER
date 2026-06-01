@@ -11,7 +11,7 @@ import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
 import { HttpError } from "../../middleware/error.js";
 import { scheduleReminders, cancelReminders } from "../../queue/reminders.queue.js";
-import { isWithinWorkSchedule } from "../../lib/work-schedule.js";
+import { isWithinWorkSchedule, validateBookingStart } from "../../lib/work-schedule.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const uploadsDir = join(__dirname, "..", "..", "..", "uploads", "masters");
@@ -42,6 +42,9 @@ function categoryDiscount(category) {
 async function createAppointmentForClient(clientId, { masterId, serviceId, startsAt }) {
   const start = new Date(startsAt);
   if (isNaN(start.getTime())) throw new HttpError(400, "invalid_date");
+
+  const bookingError = validateBookingStart(start, { minLeadMinutes: 0 });
+  if (bookingError) throw new HttpError(400, bookingError);
 
   const [client, master, service] = await Promise.all([
     prisma.client.findUnique({ where: { id: clientId } }),
@@ -375,6 +378,8 @@ router.patch("/appointments/:id", validateBody(patchAppointmentSchema), async (r
     if (req.body.status) data.status = req.body.status;
     if (req.body.startsAt) {
       const start = new Date(req.body.startsAt);
+      const bookingError = validateBookingStart(start, { minLeadMinutes: 0 });
+      if (bookingError) throw new HttpError(400, bookingError);
       data.startsAt = start;
       data.endsAt = new Date(start.getTime() + appointment.service.durationMin * 60 * 1000);
     }

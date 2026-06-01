@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "@/components/ui/Toast";
-import { formatDate, formatPrice } from "@/lib/utils";
+import { formatDate, formatPrice, bookingErrorMessage } from "@/lib/utils";
 import { format, addDays, startOfDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { classNames } from "@/lib/utils";
@@ -338,7 +338,7 @@ function BookAppointmentForm({ clientId, onSuccess }: { clientId: number; onSucc
     queryKey: ["availability", masterId, serviceId, dateKey],
     queryFn: async () =>
       (await api.get(`/masters/${masterId}/availability`, {
-        params: { service_id: serviceId, date: dateKey },
+        params: { service_id: serviceId, date: dateKey, booking_mode: "admin" },
       })).data,
     enabled: !!masterId && !!serviceId,
   });
@@ -370,8 +370,7 @@ function BookAppointmentForm({ clientId, onSuccess }: { clientId: number; onSucc
       onSuccess();
     } catch (err: any) {
       const code = err.response?.data?.error;
-      if (code === "slot_taken") setError("Это время уже занято — обновите слоты.");
-      else setError("Не удалось создать запись.");
+      setError(bookingErrorMessage(code));
     } finally {
       setLoading(false);
     }

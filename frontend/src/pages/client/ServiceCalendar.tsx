@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useState } from "react";
 import { format, addDays, startOfDay } from "date-fns";
 import { ru } from "date-fns/locale";
-import { classNames, formatPrice } from "@/lib/utils";
+import { classNames, formatPrice, bookingErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { MasterAvatar } from "@/components/MasterAvatar";
@@ -51,11 +51,7 @@ export function ClientServiceCalendar() {
       navigate("/client/cabinet");
     },
     onError: (err: any) => {
-      toast(
-        "Не удалось записаться",
-        err.response?.data?.error === "slot_taken" ? "Слот уже занят" : "Попробуйте другой слот",
-        "error",
-      );
+      toast("Не удалось записаться", bookingErrorMessage(err.response?.data?.error), "error");
     },
   });
 

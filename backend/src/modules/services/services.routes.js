@@ -8,6 +8,9 @@ import {
   parseCalendarDate,
   formatCalendarDate,
   salonDayBoundsUtc,
+  getMinBookableStartsAt,
+  isPastCalendarDate,
+  resolveMinLeadMinutes,
 } from "../../lib/work-schedule.js";
 
 const router = Router();
@@ -36,6 +39,12 @@ router.get("/:id/availability", async (req, res, next) => {
     const parts = parseCalendarDate(dateStr);
     if (!parts) throw new HttpError(400, "invalid_date");
     const calendarDate = formatCalendarDate(parts);
+
+    const bookingMode = req.query.booking_mode === "admin" ? "admin" : "client";
+    if (isPastCalendarDate(calendarDate)) {
+      return res.json({ serviceId, slots: [], dayOff: false, past: true });
+    }
+    const minStartsAtUtc = getMinBookableStartsAt(resolveMinLeadMinutes(bookingMode));
 
     const service = await prisma.service.findUnique({ where: { id: serviceId } });
     if (!service) throw new HttpError(404, "service_not_found");
@@ -73,6 +82,7 @@ router.get("/:id/availability", async (req, res, next) => {
         daySchedule,
         durationMin: service.durationMin,
         busy: masterBusy,
+        minStartsAtUtc,
       });
 
       const ms = master.services[0];

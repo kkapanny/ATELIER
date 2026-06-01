@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../lib/prisma.js";
 import { HttpError } from "../../middleware/error.js";
 import { sortServicesByCatalog } from "../../lib/service-catalog.js";
-import { generateSlotsForDay, getDayScheduleForDate, parseCalendarDate, formatCalendarDate, salonDayBoundsUtc } from "../../lib/work-schedule.js";
+import { generateSlotsForDay, getDayScheduleForDate, parseCalendarDate, formatCalendarDate, salonDayBoundsUtc, getMinBookableStartsAt, isPastCalendarDate, resolveMinLeadMinutes } from "../../lib/work-schedule.js";
 
 const router = Router();
 
@@ -71,6 +71,12 @@ router.get("/:id/availability", async (req, res, next) => {
     if (!parts) throw new HttpError(400, "invalid_date");
     const calendarDate = formatCalendarDate(parts);
 
+    const bookingMode = req.query.booking_mode === "admin" ? "admin" : "client";
+    if (isPastCalendarDate(calendarDate)) {
+      return res.json({ masterId: id, serviceId, slots: [], dayOff: false, past: true });
+    }
+    const minStartsAtUtc = getMinBookableStartsAt(resolveMinLeadMinutes(bookingMode));
+
     const daySchedule = getDayScheduleForDate(master.workSchedule, calendarDate);
     if (!daySchedule) {
       return res.json({ masterId: id, serviceId, slots: [], dayOff: true });
@@ -78,11 +84,14 @@ router.get("/:id/availability", async (req, res, next) => {
 
     const { dayStart, dayEnd } = salonDayBoundsUtc(calendarDate);
 
+    const excludeId = req.query.exclude_appointment_id ? Number(req.query.exclude_appointment_id) : null;
+
     const busy = await prisma.appointment.findMany({
       where: {
         masterId: id,
         startsAt: { gte: dayStart, lt: dayEnd },
         status: { in: ["planned", "confirmed", "completed"] },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
 
@@ -91,6 +100,7 @@ router.get("/:id/availability", async (req, res, next) => {
       daySchedule,
       durationMin: service.durationMin,
       busy,
+      minStartsAtUtc,
     });
 
     res.json({ masterId: id, serviceId, slots, dayOff: false });

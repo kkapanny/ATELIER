@@ -12,8 +12,37 @@ import {
 
 export const SALON_START = "10:00";
 export const SALON_END = "21:00";
+/** Минимальный интервал между «сейчас» и записью для клиента. */
+export const CLIENT_MIN_LEAD_MINUTES = 60;
 
 export { parseCalendarDate, formatCalendarDate, calendarDayOfWeek, salonDayBoundsUtc };
+
+/** Календарная дата «сегодня» в часовом поясе салона. */
+export function salonTodayDateStr(now = new Date()) {
+  return formatCalendarDate(utcToSalonLocal(now));
+}
+
+export function isPastCalendarDate(dateStr, now = new Date()) {
+  return dateStr < salonTodayDateStr(now);
+}
+
+/** UTC-момент, раньше которого запись недоступна. */
+export function getMinBookableStartsAt(minLeadMinutes = 0, now = new Date()) {
+  return new Date(now.getTime() + minLeadMinutes * 60 * 1000);
+}
+
+export function resolveMinLeadMinutes(bookingMode) {
+  return bookingMode === "admin" ? 0 : CLIENT_MIN_LEAD_MINUTES;
+}
+
+/** null — ок; иначе код ошибки для HttpError. */
+export function validateBookingStart(startUtc, { minLeadMinutes = 0, now = new Date() } = {}) {
+  const minStart = getMinBookableStartsAt(minLeadMinutes, now);
+  if (startUtc.getTime() < minStart.getTime()) {
+    return minLeadMinutes > 0 ? "too_soon" : "past_time";
+  }
+  return null;
+}
 
 export function buildDefaultWorkSchedule() {
   const sched = {};
@@ -64,7 +93,7 @@ export function isWithinWorkSchedule(workSchedule, startUtc, endUtc) {
  * - available — можно записаться на услугу с durationMin;
  * - слоты, где мастер свободен, но услуга не помещается, не возвращаются.
  */
-export function generateSlotsForDay({ dateStr, daySchedule, durationMin, busy, stepMin = 30 }) {
+export function generateSlotsForDay({ dateStr, daySchedule, durationMin, busy, stepMin = 30, minStartsAtUtc = null }) {
   if (!daySchedule) return [];
 
   const parts = parseCalendarDate(dateStr);
@@ -79,6 +108,7 @@ export function generateSlotsForDay({ dateStr, daySchedule, durationMin, busy, s
     const time = minutesToTime(current);
     const slotStartUtc = salonLocalToUtc(dateStr, time);
     if (!slotStartUtc) continue;
+    if (minStartsAtUtc && slotStartUtc < minStartsAtUtc) continue;
 
     const slotEndUtc = new Date(slotStartUtc.getTime() + durationMin * 60 * 1000);
     const stepEndUtc = new Date(slotStartUtc.getTime() + stepMin * 60 * 1000);

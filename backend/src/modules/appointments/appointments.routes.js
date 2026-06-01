@@ -6,7 +6,7 @@ import { requireRole } from "../../middleware/rbac.js";
 import { validateBody } from "../../middleware/validate.js";
 import { HttpError } from "../../middleware/error.js";
 import { scheduleReminders, cancelReminders } from "../../queue/reminders.queue.js";
-import { isWithinWorkSchedule } from "../../lib/work-schedule.js";
+import { isWithinWorkSchedule, validateBookingStart, CLIENT_MIN_LEAD_MINUTES } from "../../lib/work-schedule.js";
 
 const router = Router();
 
@@ -21,6 +21,10 @@ router.post("/", authenticate, requireRole("client", "admin"), validateBody(crea
     const { masterId, serviceId, startsAt } = req.body;
     const start = new Date(startsAt);
     if (isNaN(start.getTime())) throw new HttpError(400, "invalid_date");
+
+    const minLead = req.user.role === "admin" ? 0 : CLIENT_MIN_LEAD_MINUTES;
+    const bookingError = validateBookingStart(start, { minLeadMinutes: minLead });
+    if (bookingError) throw new HttpError(400, bookingError);
 
     const [client, master, service] = await Promise.all([
       prisma.client.findUnique({ where: { userId: req.user.id } }),
@@ -124,8 +128,37 @@ router.patch("/:id", authenticate, validateBody(patchSchema), async (req, res, n
     if (req.body.status) data.status = req.body.status;
     if (req.body.startsAt) {
       const start = new Date(req.body.startsAt);
+      if (isNaN(start.getTime())) throw new HttpError(400, "invalid_date");
+
+      if (role === "client" && !["planned", "confirmed"].includes(appointment.status)) {
+        throw new HttpError(400, "cannot_reschedule");
+      }
+
+      if (role === "client") {
+        const bookingError = validateBookingStart(start, { minLeadMinutes: CLIENT_MIN_LEAD_MINUTES });
+        if (bookingError) throw new HttpError(400, bookingError);
+      } else if (role === "master" || role === "admin") {
+        const bookingError = validateBookingStart(start, { minLeadMinutes: 0 });
+        if (bookingError) throw new HttpError(400, bookingError);
+      }
+
+      const end = new Date(start.getTime() + appointment.service.durationMin * 60 * 1000);
+      if (!isWithinWorkSchedule(appointment.master.workSchedule, start, end)) {
+        throw new HttpError(400, "outside_work_schedule");
+      }
+
+      const conflict = await prisma.appointment.findFirst({
+        where: {
+          id: { not: id },
+          masterId: appointment.masterId,
+          status: { in: ["planned", "confirmed", "completed"] },
+          AND: [{ startsAt: { lt: end } }, { endsAt: { gt: start } }],
+        },
+      });
+      if (conflict) throw new HttpError(409, "slot_taken");
+
       data.startsAt = start;
-      data.endsAt = new Date(start.getTime() + appointment.service.durationMin * 60 * 1000);
+      data.endsAt = end;
     }
     const updated = await prisma.appointment.update({ where: { id }, data });
 

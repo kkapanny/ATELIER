@@ -1,14 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
+import { RescheduleModal } from "./RescheduleModal";
 
 export function ClientCabinet() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  const [rescheduleTarget, setRescheduleTarget] = useState<any | null>(null);
   const { data: items = [] } = useQuery({
     queryKey: ["my-appointments"],
     queryFn: async () => (await api.get("/appointments/me")).data,
@@ -50,9 +53,14 @@ export function ClientCabinet() {
                 </div>
                 <div className="text-right">
                   <div className="text-ink-700 font-medium">{formatPrice(Number(a.priceAtBooking) - Number(a.discountApplied || 0))}</div>
-                  <Button variant="ghost" className="text-red-600 mt-1 text-xs" onClick={() => cancel.mutate(a.id)}>
-                    Отменить
-                  </Button>
+                  <div className="flex items-center justify-end gap-2 mt-1">
+                    <Button variant="ghost" className="text-xs text-ink-600" onClick={() => setRescheduleTarget(a)}>
+                      Перенести
+                    </Button>
+                    <Button variant="ghost" className="text-red-600 text-xs" onClick={() => cancel.mutate(a.id)}>
+                      Отменить
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -94,6 +102,14 @@ export function ClientCabinet() {
           </Link>
         </aside>
       </div>
+
+      {rescheduleTarget && (
+        <RescheduleModal
+          appointment={rescheduleTarget}
+          onClose={() => setRescheduleTarget(null)}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ["my-appointments"] })}
+        />
+      )}
     </div>
   );
 }
