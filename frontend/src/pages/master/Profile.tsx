@@ -6,6 +6,11 @@ import { formatDate, formatPrice } from "@/lib/utils";
 import { MasterAvatar } from "@/components/MasterAvatar";
 import { formatMasterSpecialtyWithYears } from "@/lib/masterSpecialties";
 import { ServiceListGrouped } from "@/components/ServiceListGrouped";
+import { appointmentStatusLabel } from "@/lib/appointmentStatus";
+
+function appointmentEarnings(a: { priceAtBooking: number | string; discountApplied?: number | string | null }) {
+  return Number(a.priceAtBooking) - Number(a.discountApplied || 0);
+}
 
 export function MasterProfile() {
   const { user } = useAuthStore();
@@ -25,7 +30,7 @@ export function MasterProfile() {
   });
 
   const completed = appts.filter((a: any) => a.status === "completed");
-  const earnings = completed.reduce((acc: number, a: any) => acc + (Number(a.priceAtBooking) - Number(a.discountApplied || 0)), 0);
+  const earnings = completed.reduce((acc: number, a: any) => acc + appointmentEarnings(a), 0);
 
   if (!me?.master) return <div className="page-shell">Профиль мастера не найден</div>;
 
@@ -64,7 +69,7 @@ export function MasterProfile() {
                       <div key={a.id} className="flex items-center gap-3 border-b border-cream-200 pb-2 last:border-b-0">
                         <span className="text-sm text-ink-700 w-44">{formatDate(a.startsAt, "d MMM, HH:mm")}</span>
                         <span className="text-sm text-ink-500 flex-1">{a.client.fullName} · {a.service.name}</span>
-                        <span className="pill-cream">{statusLabel(a.status)}</span>
+                        <span className="pill-cream">{appointmentStatusLabel(a.status)}</span>
                       </div>
                     ))}
                   </div>
@@ -130,12 +135,3 @@ function BigStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function statusLabel(s: string) {
-  return ({
-    planned: "Запланировано",
-    confirmed: "Подтверждено",
-    completed: "Завершено",
-    cancelled: "Отменено",
-    no_show: "Не пришёл",
-  } as Record<string, string>)[s] ?? s;
-}

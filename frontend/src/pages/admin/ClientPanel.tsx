@@ -8,13 +8,15 @@ import { formatDate, formatPrice, bookingErrorMessage } from "@/lib/utils";
 import { format, addDays, startOfDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { classNames } from "@/lib/utils";
+import { APPOINTMENT_STATUS_LABELS } from "@/lib/appointmentStatus";
 
 const STATUS_OPTIONS = [
-  { value: "planned", label: "Запланировано" },
-  { value: "confirmed", label: "Подтверждено" },
-  { value: "completed", label: "Завершено" },
-  { value: "cancelled", label: "Отменено" },
-  { value: "no_show", label: "Не пришёл" },
+  { value: "planned", label: APPOINTMENT_STATUS_LABELS.planned },
+  { value: "confirmed", label: APPOINTMENT_STATUS_LABELS.confirmed },
+  { value: "completed", label: APPOINTMENT_STATUS_LABELS.completed },
+  { value: "cancelled", label: APPOINTMENT_STATUS_LABELS.cancelled },
+  { value: "no_show", label: APPOINTMENT_STATUS_LABELS.no_show },
+  { value: "service_refused", label: APPOINTMENT_STATUS_LABELS.service_refused },
 ] as const;
 
 interface ClientPanelProps {

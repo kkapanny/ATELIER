@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { appointmentStatusLabel } from "@/lib/appointmentStatus";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { RescheduleModal } from "./RescheduleModal";
@@ -26,7 +27,7 @@ export function ClientCabinet() {
   });
 
   const upcoming = items.filter((a: any) => ["planned", "confirmed"].includes(a.status));
-  const past = items.filter((a: any) => a.status === "completed");
+  const past = items.filter((a: any) => ["completed", "service_refused"].includes(a.status));
 
   return (
     <div className="page-shell">
@@ -125,7 +126,7 @@ export function HistoryCard({ item, compact = false }: { item: any; compact?: bo
           <div className="font-display text-lg text-ink-700">{item.service?.name}</div>
           <div className="text-sm text-ink-500">{item.master?.fullName} · {formatDate(item.startsAt)}</div>
         </div>
-        <span className="pill-cream">Завершено</span>
+        <span className="pill-cream">{appointmentStatusLabel(item.status)}</span>
       </div>
       {item.care && !compact && (
         <div className="mt-4 grid md:grid-cols-2 gap-3">

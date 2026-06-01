@@ -7,7 +7,7 @@ export function ClientHistory() {
     queryKey: ["my-appointments"],
     queryFn: async () => (await api.get("/appointments/me")).data,
   });
-  const past = items.filter((a: any) => a.status === "completed");
+  const past = items.filter((a: any) => ["completed", "service_refused"].includes(a.status));
   return (
     <div className="page-shell">
       <h1 className="font-display text-4xl text-ink-700">История посещений</h1>

@@ -41,6 +41,7 @@ enum AppointmentStatus {
   completed
   cancelled
   no_show
+  service_refused
 }
 
 enum NotificationType {

@@ -362,7 +362,7 @@ router.post("/clients/:id/appointments", validateBody(adminAppointmentSchema), a
 
 const patchAppointmentSchema = z.object({
   startsAt: z.string().optional(),
-  status: z.enum(["planned", "confirmed", "completed", "cancelled", "no_show"]).optional(),
+  status: z.enum(["planned", "confirmed", "completed", "cancelled", "no_show", "service_refused"]).optional(),
 });
 
 router.patch("/appointments/:id", validateBody(patchAppointmentSchema), async (req, res, next) => {
@@ -393,7 +393,7 @@ router.patch("/appointments/:id", validateBody(patchAppointmentSchema), async (r
       await cancelReminders(id);
       await scheduleReminders(updated);
     }
-    if (data.status === "cancelled" || data.status === "no_show") {
+    if (data.status === "cancelled" || data.status === "no_show" || data.status === "service_refused") {
       await cancelReminders(id);
     }
     res.json(updated);

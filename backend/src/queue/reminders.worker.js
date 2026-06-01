@@ -26,7 +26,7 @@ export function startRemindersWorker() {
         include: { master: true, service: true, client: { include: { user: true } } },
       });
       if (!appointment) return;
-      if (appointment.status === "cancelled" || appointment.status === "no_show") return;
+      if (appointment.status === "cancelled" || appointment.status === "no_show" || appointment.status === "service_refused") return;
       if (!appointment.client.userId) {
         await prisma.notification.update({
           where: { id: notif.id },

@@ -64,7 +64,7 @@ router.post("/", authenticate, requireRole("client", "admin"), validateBody(crea
           serviceId,
           startsAt: start,
           endsAt: end,
-          status: "confirmed",
+          status: "planned",
           priceAtBooking: price,
           discountApplied: discount,
         },
@@ -72,7 +72,6 @@ router.post("/", authenticate, requireRole("client", "admin"), validateBody(crea
       });
     });
 
-    await scheduleReminders(appointment);
     res.status(201).json(appointment);
   } catch (e) { next(e); }
 });
@@ -105,8 +104,10 @@ router.get("/master/me", authenticate, requireRole("master"), async (req, res, n
 
 const patchSchema = z.object({
   startsAt: z.string().optional(),
-  status: z.enum(["planned", "confirmed", "completed", "cancelled", "no_show"]).optional(),
+  status: z.enum(["planned", "confirmed", "completed", "cancelled", "no_show", "service_refused"]).optional(),
 });
+
+const MASTER_VISIT_OUTCOMES = new Set(["completed", "no_show", "service_refused"]);
 
 router.patch("/:id", authenticate, validateBody(patchSchema), async (req, res, next) => {
   try {
@@ -125,7 +126,26 @@ router.patch("/:id", authenticate, validateBody(patchSchema), async (req, res, n
     }
 
     const data = {};
-    if (req.body.status) data.status = req.body.status;
+    if (req.body.status) {
+      if (role === "master") {
+        const next = req.body.status;
+        if (next === "confirmed" || next === "cancelled") {
+          if (appointment.status !== "planned") {
+            throw new HttpError(400, "already_reviewed");
+          }
+        } else if (MASTER_VISIT_OUTCOMES.has(next)) {
+          if (appointment.status !== "confirmed") {
+            throw new HttpError(400, "visit_not_confirmed");
+          }
+          if (new Date() < appointment.startsAt) {
+            throw new HttpError(400, "visit_not_started");
+          }
+        } else {
+          throw new HttpError(400, "invalid_status");
+        }
+      }
+      data.status = req.body.status;
+    }
     if (req.body.startsAt) {
       const start = new Date(req.body.startsAt);
       if (isNaN(start.getTime())) throw new HttpError(400, "invalid_date");
@@ -166,7 +186,10 @@ router.patch("/:id", authenticate, validateBody(patchSchema), async (req, res, n
       await cancelReminders(id);
       await scheduleReminders(updated);
     }
-    if (data.status === "cancelled" || data.status === "no_show") {
+    if (data.status === "confirmed" && appointment.status === "planned") {
+      await scheduleReminders(updated);
+    }
+    if (data.status === "cancelled" || data.status === "no_show" || data.status === "service_refused") {
       await cancelReminders(id);
     }
     res.json(updated);
@@ -203,7 +226,14 @@ router.post("/:id/care", authenticate, requireRole("master", "admin"), validateB
   try {
     const id = Number(req.params.id);
     const master = await prisma.master.findUnique({ where: { userId: req.user.id } });
-    if (!master) throw new HttpError(403, "master_required");
+    if (!master && req.user.role === "master") throw new HttpError(403, "master_required");
+
+    const appt = await prisma.appointment.findUnique({ where: { id } });
+    if (!appt) throw new HttpError(404, "appointment_not_found");
+    if (req.user.role === "master" && appt.masterId !== master.id) throw new HttpError(403, "forbidden");
+    if (!["completed", "service_refused"].includes(appt.status)) {
+      throw new HttpError(400, "care_not_allowed");
+    }
 
     const care = await prisma.careRecommendation.upsert({
       where: { appointmentId: id },
@@ -211,7 +241,7 @@ router.post("/:id/care", authenticate, requireRole("master", "admin"), validateB
         appointmentId: id,
         adviceText: req.body.adviceText,
         repeatAfterDays: req.body.repeatAfterDays,
-        createdById: master.id,
+        createdById: master?.id ?? appt.masterId,
       },
       update: {
         adviceText: req.body.adviceText,
@@ -219,9 +249,7 @@ router.post("/:id/care", authenticate, requireRole("master", "admin"), validateB
       },
     });
 
-    // Запланировать push о повторной записи
-    const appt = await prisma.appointment.findUnique({ where: { id } });
-    if (appt) await scheduleReminders(appt, { repeatAfterDays: req.body.repeatAfterDays });
+    await scheduleReminders(appt, { repeatAfterDays: req.body.repeatAfterDays });
 
     res.json(care);
   } catch (e) { next(e); }

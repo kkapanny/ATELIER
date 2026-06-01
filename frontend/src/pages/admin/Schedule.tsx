@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { PageHeading } from "./Clients";
 import { formatDate } from "@/lib/utils";
 import { classNames } from "@/lib/utils";
+import { APPOINTMENT_STATUS_LABELS } from "@/lib/appointmentStatus";
 
 export function AdminSchedule() {
   const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -61,7 +62,7 @@ export function AdminSchedule() {
   );
 }
 
-const LEGEND_STATUSES = ["planned", "confirmed", "completed", "cancelled", "no_show"] as const;
+const LEGEND_STATUSES = ["planned", "confirmed", "completed", "cancelled", "no_show", "service_refused"] as const;
 
 const STATUS_STYLES: Record<string, string> = {
   planned: "bg-blue-100 text-blue-700",
@@ -69,15 +70,10 @@ const STATUS_STYLES: Record<string, string> = {
   completed: "bg-cream-200 text-ink-500",
   cancelled: "bg-red-100 text-red-700",
   no_show: "bg-amber-100 text-amber-700",
+  service_refused: "bg-orange-100 text-orange-700",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  planned: "Запланировано",
-  confirmed: "Подтверждено",
-  completed: "Завершено",
-  cancelled: "Отменено",
-  no_show: "Не пришёл",
-};
+const STATUS_LABELS = APPOINTMENT_STATUS_LABELS;
 
 function StatusPill({ status }: { status: string }) {
   return (
