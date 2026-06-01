@@ -55,6 +55,7 @@ export function SiteHeader() {
           {r === "client" && (
             <>
               <NavPill to="/client">Мастера</NavPill>
+              <NavPill to="/client/services">Услуги</NavPill>
               <NavPill to="/client/cabinet">Мои записи</NavPill>
               <NavPill to="/client/history">История</NavPill>
               <NavPill to="/client/notifications">Уведомления</NavPill>
@@ -129,7 +130,7 @@ function NavPill({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <NavLink
       to={to}
-      end={to === "/" || to === "/client" || to === "/master"}
+      end={to === "/" || to === "/client" || to === "/client/services" || to === "/master"}
       className={({ isActive }) =>
         `nav-pill ${isActive ? "nav-pill-active" : "hover:bg-cream-200/70"}`
       }

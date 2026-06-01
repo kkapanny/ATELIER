@@ -13,8 +13,10 @@ import { LoginPage } from "./pages/auth/Login";
 import { RegisterPage } from "./pages/auth/Register";
 
 import { ClientHome } from "./pages/client/Home";
+import { ClientServices } from "./pages/client/Services";
 import { ClientMasterDetail } from "./pages/client/MasterDetail";
 import { ClientCalendar } from "./pages/client/Calendar";
+import { ClientServiceCalendar } from "./pages/client/ServiceCalendar";
 import { ClientCabinet } from "./pages/client/Cabinet";
 import { ClientHistory } from "./pages/client/History";
 import { ClientProfile } from "./pages/client/Profile";
@@ -45,6 +47,8 @@ export function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         <Route path="/client" element={<ProtectedRoute roles={["client", "admin"]}><ClientHome /></ProtectedRoute>} />
+        <Route path="/client/services" element={<ProtectedRoute roles={["client", "admin"]}><ClientServices /></ProtectedRoute>} />
+        <Route path="/client/services/:serviceId/calendar" element={<ProtectedRoute roles={["client", "admin"]}><ClientServiceCalendar /></ProtectedRoute>} />
         <Route path="/client/masters/:id" element={<ProtectedRoute roles={["client", "admin"]}><ClientMasterDetail /></ProtectedRoute>} />
         <Route path="/client/masters/:id/calendar" element={<ProtectedRoute roles={["client", "admin"]}><ClientCalendar /></ProtectedRoute>} />
         <Route path="/client/cabinet" element={<ProtectedRoute roles={["client", "admin"]}><ClientCabinet /></ProtectedRoute>} />

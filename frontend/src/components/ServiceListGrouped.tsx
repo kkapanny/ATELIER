@@ -13,9 +13,11 @@ interface ServiceListGroupedProps {
   services: ServiceListItem[];
   /** Кнопка «Записаться» у каждой услуги (карточка мастера для клиента). */
   bookBasePath?: string;
+  /** Кастомная ссылка записи (например, /client/services/:id/calendar). */
+  bookLink?: (serviceId: number) => string;
 }
 
-export function ServiceListGrouped({ services, bookBasePath }: ServiceListGroupedProps) {
+export function ServiceListGrouped({ services, bookBasePath, bookLink }: ServiceListGroupedProps) {
   const groups = groupServicesByCatalog(services);
 
   if (groups.length === 0) {
@@ -41,9 +43,9 @@ export function ServiceListGrouped({ services, bookBasePath }: ServiceListGroupe
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-ink-700 font-medium">{formatPrice(s.price)}</span>
-                  {bookBasePath ? (
+                  {bookBasePath || bookLink ? (
                     <Link
-                      to={`${bookBasePath}?service_id=${s.id}`}
+                      to={bookLink ? bookLink(s.id) : `${bookBasePath}?service_id=${s.id}`}
                       className="btn-primary text-xs"
                     >
                       Записаться
