@@ -83,7 +83,7 @@ router.get("/me", authenticate, async (req, res, next) => {
     const items = await prisma.appointment.findMany({
       where: { clientId: client.id },
       orderBy: { startsAt: "desc" },
-      include: { master: true, service: true, care: true },
+      include: { master: true, service: true, care: true, review: true },
     });
     res.json(items);
   } catch (e) { next(e); }

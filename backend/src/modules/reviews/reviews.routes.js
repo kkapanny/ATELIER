@@ -21,6 +21,7 @@ router.post("/", authenticate, requireRole("client"), validateBody(schema), asyn
 
     const appt = await prisma.appointment.findUnique({ where: { id: req.body.appointmentId } });
     if (!appt || appt.clientId !== client.id) throw new HttpError(404, "appointment_not_found");
+    if (appt.status !== "completed") throw new HttpError(400, "review_not_allowed");
 
     const review = await prisma.review.upsert({
       where: { appointmentId: appt.id },

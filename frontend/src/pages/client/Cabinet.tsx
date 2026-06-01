@@ -8,6 +8,7 @@ import { appointmentStatusLabel } from "@/lib/appointmentStatus";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { RescheduleModal } from "./RescheduleModal";
+import { ReviewModal, ReviewSummary } from "./ReviewModal";
 
 export function ClientCabinet() {
   const { user } = useAuthStore();
@@ -75,7 +76,7 @@ export function ClientCabinet() {
               </div>
             )}
             {past.slice(0, 3).map((a: any) => (
-              <HistoryCard key={a.id} item={a} compact />
+              <HistoryCard key={a.id} item={a} compact onReview={() => qc.invalidateQueries({ queryKey: ["my-appointments"] })} />
             ))}
             {past.length > 3 && (
               <Link to="/client/history" className="text-sm text-ink-400 hover:text-ink-700 underline-offset-2 hover:underline">
@@ -115,7 +116,18 @@ export function ClientCabinet() {
   );
 }
 
-export function HistoryCard({ item, compact = false }: { item: any; compact?: boolean }) {
+export function HistoryCard({
+  item,
+  compact = false,
+  onReview,
+}: {
+  item: any;
+  compact?: boolean;
+  onReview?: () => void;
+}) {
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const canReview = item.status === "completed";
+
   return (
     <div className="bg-white border border-cream-200 rounded-2xl p-5">
       <div className="flex items-center gap-5">
@@ -126,8 +138,22 @@ export function HistoryCard({ item, compact = false }: { item: any; compact?: bo
           <div className="font-display text-lg text-ink-700">{item.service?.name}</div>
           <div className="text-sm text-ink-500">{item.master?.fullName} · {formatDate(item.startsAt)}</div>
         </div>
-        <span className="pill-cream">{appointmentStatusLabel(item.status)}</span>
+        <div className="flex flex-col items-end gap-2">
+          <span className="pill-cream">{appointmentStatusLabel(item.status)}</span>
+          {canReview && !item.review && (
+            <Button variant="ghost" className="text-xs text-ink-600" onClick={() => setReviewOpen(true)}>
+              Оставить отзыв
+            </Button>
+          )}
+        </div>
       </div>
+      {item.review && (
+        <ReviewSummary
+          review={item.review}
+          compact={compact}
+          onEdit={canReview ? () => setReviewOpen(true) : undefined}
+        />
+      )}
       {item.care && !compact && (
         <div className="mt-4 grid md:grid-cols-2 gap-3">
           <div className="bg-cream-50 border border-cream-200 rounded-xl p-4">
@@ -146,6 +172,14 @@ export function HistoryCard({ item, compact = false }: { item: any; compact?: bo
       )}
       {item.care && compact && (
         <div className="text-xs text-ink-400 mt-3 line-clamp-2">{item.care.adviceText}</div>
+      )}
+
+      {reviewOpen && (
+        <ReviewModal
+          appointment={item}
+          onClose={() => setReviewOpen(false)}
+          onSuccess={() => onReview?.()}
+        />
       )}
     </div>
   );
